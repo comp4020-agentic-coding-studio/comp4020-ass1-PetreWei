@@ -118,16 +118,6 @@ a {
   cursor: pointer;
 }
 
-.key-wedge::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  clip-path: var(--wedge-clip);
-  background: transparent;
-  pointer-events: none;
-  transition: background 0.15s ease;
-}
-
 .key-wedge:hover {
   filter: brightness(1.12);
 }
@@ -136,50 +126,70 @@ a {
   filter: brightness(1.12);
 }
 
-.key-wedge:focus-visible::after {
-  background: rgb(11 95 255 / 30%);
+.wedge-border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
 }
 
-.key-wedge[aria-pressed="true"] {
-  transform: scale(1.08);
+.wedge-border path {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 1.4;
 }
 
-.key-wedge[aria-pressed="true"]::after {
-  background: rgb(255 255 255 / 40%);
+.key-wedge.neighbor-dominant .wedge-border path {
+  stroke: #d97706;
 }
 
-.key-wedge.neighbor-dominant::after {
-  background: rgb(217 119 6 / 55%);
+.key-wedge.neighbor-subdominant .wedge-border path {
+  stroke: #059669;
 }
 
-.key-wedge.neighbor-subdominant::after {
-  background: rgb(5 150 105 / 55%);
-}
-
-.wedge-label {
+.wedge-name {
   position: absolute;
   z-index: 1;
   left: var(--label-left);
   top: var(--label-top);
   transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
   color: var(--wedge-ink);
   font-size: clamp(0.65rem, 2.2vw, 0.95rem);
   line-height: 1;
   pointer-events: none;
 }
 
-.key-wedge-minor .wedge-label {
+.key-wedge-minor .wedge-name {
   font-size: clamp(0.6rem, 1.8vw, 0.8rem);
 }
 
 .wedge-numeral {
+  position: absolute;
+  z-index: 1;
+  left: var(--label-left);
+  top: var(--label-top);
+  transform: translate(-50%, -50%);
+  color: var(--wedge-ink);
   font-size: clamp(0.55rem, 1.6vw, 0.75rem);
   font-weight: 700;
   min-height: 1em;
+  pointer-events: none;
+}
+
+.key-wedge[aria-pressed="true"] .wedge-name,
+.key-wedge.neighbor-dominant .wedge-name,
+.key-wedge.neighbor-subdominant .wedge-name {
+  font-weight: 700;
+  font-size: clamp(0.85rem, 2.9vw, 1.25rem);
+}
+
+.key-wedge[aria-pressed="true"] .wedge-numeral,
+.key-wedge.neighbor-dominant .wedge-numeral,
+.key-wedge.neighbor-subdominant .wedge-numeral {
+  font-weight: 700;
+  font-size: clamp(0.7rem, 2vw, 0.95rem);
 }
 
 .key-signature-badge {
@@ -230,14 +240,6 @@ a {
   color: #1a1a1a;
 }
 
-.circle-caption {
-  max-width: min(90vw, 32rem);
-  margin: 0;
-  text-align: center;
-  font-size: 0.8rem;
-  color: #444;
-}
-
 .piano-keyboard-scroll {
   width: min(90vw, 32rem);
   overflow-x: auto;
@@ -269,6 +271,14 @@ a {
   font-size: 0.6rem;
   line-height: 1;
   pointer-events: none;
+}
+
+.piano-key-label-black {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.48rem;
 }
 
 .piano-key-white {

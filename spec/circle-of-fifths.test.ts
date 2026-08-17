@@ -3,11 +3,14 @@ import { resolve } from "node:path";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import {
+  HAPPY_BIRTHDAY_BEATS,
+  HAPPY_BIRTHDAY_SENTENCE_COUNT,
   KEYS,
   PIANO_KEYS,
   getAccidentalBadgeText,
   getDiatonicChords,
   getHappyBirthdayNotes,
+  getHappyBirthdaySequence,
   getKeyColor,
   getKeyColorHue,
   getNeighborIndices,
@@ -296,6 +299,30 @@ describe("circle of fifths: pure logic", () => {
       { pitchClass: 3, octave: 4 },
     ]);
   });
+
+  it("gives 'Happy Birthday' a syncopated pickup and a held final note (beats: 0.5 0.5 1 1 1 2)", () => {
+    expect(HAPPY_BIRTHDAY_BEATS).toEqual([0.5, 0.5, 1, 1, 1, 2]);
+  });
+
+  it("repeats the full transposed phrase 4 times to play all 4 sung lines", () => {
+    const cMajor = KEYS.find((k) => k.name === "C")!;
+    const sequence = getHappyBirthdaySequence(cMajor, "major");
+    const phrase = getHappyBirthdayNotes(cMajor, "major");
+    expect(sequence.length).toBe(phrase.length * HAPPY_BIRTHDAY_SENTENCE_COUNT);
+    expect(HAPPY_BIRTHDAY_SENTENCE_COUNT).toBe(4);
+    expect(sequence.map((n) => n.beats)).toEqual([
+      ...HAPPY_BIRTHDAY_BEATS,
+      ...HAPPY_BIRTHDAY_BEATS,
+      ...HAPPY_BIRTHDAY_BEATS,
+      ...HAPPY_BIRTHDAY_BEATS,
+    ]);
+    expect(sequence.map((n) => ({ pitchClass: n.pitchClass, octave: n.octave }))).toEqual([
+      ...phrase,
+      ...phrase,
+      ...phrase,
+      ...phrase,
+    ]);
+  });
 });
 
 describe("circle of fifths: built page structure (static parse, no script execution)", () => {
@@ -400,15 +427,48 @@ describe("circle of fifths: built page structure (static parse, no script execut
     }
   });
 
+  it("labels every black key with both its sharp and flat names", () => {
+    const blackKeys = Array.from(doc!.querySelectorAll(".piano-key-black"));
+    expect(blackKeys.length).toBe(10);
+    for (const key of blackKeys) {
+      const spans = Array.from(key.querySelectorAll(".piano-key-label-black span")).map(
+        (el) => el.textContent,
+      );
+      expect(spans.length).toBe(2);
+      expect(spans[0]).toContain("♯");
+      expect(spans[1]).toContain("♭");
+    }
+  });
+
   it("renders a Happy Birthday button, disabled until a key is picked", () => {
     const button = doc!.querySelector('[data-testid="happy-birthday-button"]');
     expect(button).toBeTruthy();
     expect(button!.hasAttribute("disabled")).toBe(true);
   });
 
-  it("merges the ring legend into a single caption instead of a separate list", () => {
+  it("renders no ring legend or caption text", () => {
     expect(doc!.querySelector(".legend")).toBeFalsy();
-    expect(doc!.querySelector(".circle-caption")).toBeTruthy();
+    expect(doc!.querySelector(".circle-caption")).toBeFalsy();
+  });
+
+  it("labels minor wedges with the 'm' suffix (Am, Em, ...) instead of a bare letter name", () => {
+    const minorNames = Array.from(
+      doc!.querySelectorAll('button[data-mode="minor"] .wedge-name'),
+    ).map((el) => el.textContent?.trim());
+    expect(minorNames.length).toBe(12);
+    for (const name of minorNames) {
+      expect(name).toMatch(/m(?: \/ .+m)?$/);
+    }
+    expect(minorNames).toContain("Am");
+    expect(minorNames).toContain("Em");
+  });
+
+  it("gives every wedge an SVG border tracing its own sector, for the neighbour-highlight outline", () => {
+    const paths = doc!.querySelectorAll(".wedge-border path");
+    expect(paths.length).toBe(24);
+    for (const path of paths) {
+      expect(path.getAttribute("d")).toBeTruthy();
+    }
   });
 
   it("renders a chord/arpeggio playback toggle, defaulting to arpeggio", () => {

@@ -50,6 +50,7 @@ export interface TriadNotes {
 export interface PianoKeyInfo {
   readonly pitchClass: number;
   readonly label: string;
+  readonly flatLabel?: string;
   readonly isBlack: boolean;
   readonly whiteIndex: number;
   readonly octave: number;
@@ -202,16 +203,16 @@ export function getTriadFrequencies(
 // keys, where a real black key sits — not centered inside one.
 const PIANO_OCTAVE_TEMPLATE: readonly Omit<PianoKeyInfo, "octave">[] = [
   { pitchClass: 0, label: "C", isBlack: false, whiteIndex: 0 },
-  { pitchClass: 1, label: "C♯", isBlack: true, whiteIndex: 1 },
+  { pitchClass: 1, label: "C♯", flatLabel: "D♭", isBlack: true, whiteIndex: 1 },
   { pitchClass: 2, label: "D", isBlack: false, whiteIndex: 1 },
-  { pitchClass: 3, label: "D♯", isBlack: true, whiteIndex: 2 },
+  { pitchClass: 3, label: "D♯", flatLabel: "E♭", isBlack: true, whiteIndex: 2 },
   { pitchClass: 4, label: "E", isBlack: false, whiteIndex: 2 },
   { pitchClass: 5, label: "F", isBlack: false, whiteIndex: 3 },
-  { pitchClass: 6, label: "F♯", isBlack: true, whiteIndex: 4 },
+  { pitchClass: 6, label: "F♯", flatLabel: "G♭", isBlack: true, whiteIndex: 4 },
   { pitchClass: 7, label: "G", isBlack: false, whiteIndex: 4 },
-  { pitchClass: 8, label: "G♯", isBlack: true, whiteIndex: 5 },
+  { pitchClass: 8, label: "G♯", flatLabel: "A♭", isBlack: true, whiteIndex: 5 },
   { pitchClass: 9, label: "A", isBlack: false, whiteIndex: 5 },
-  { pitchClass: 10, label: "A♯", isBlack: true, whiteIndex: 6 },
+  { pitchClass: 10, label: "A♯", flatLabel: "B♭", isBlack: true, whiteIndex: 6 },
   { pitchClass: 11, label: "B", isBlack: false, whiteIndex: 6 },
 ];
 
@@ -387,4 +388,25 @@ export function getHappyBirthdayNotes(key: KeyInfo, quality: KeyQuality): TriadN
       octave: rawPitch >= 12 ? 5 : 4,
     };
   });
+}
+
+// The tune's actual rhythm, in quarter-note beats aligned to HAPPY_BIRTHDAY_DEGREES:
+// the first two notes are the short syncopated pickup ("Hap-py"), the middle
+// three are even quarter notes, and the last is held twice as long.
+export const HAPPY_BIRTHDAY_BEATS: readonly number[] = [0.5, 0.5, 1, 1, 1, 2];
+
+// "Happy Birthday to You" has 4 sung lines; this repeats the same transposed
+// phrase 4 times so the demo plays the whole song, not just one line of it.
+export const HAPPY_BIRTHDAY_SENTENCE_COUNT = 4;
+
+export interface HappyBirthdayNote extends TriadNote {
+  readonly beats: number;
+}
+
+export function getHappyBirthdaySequence(key: KeyInfo, quality: KeyQuality): HappyBirthdayNote[] {
+  const phrase = getHappyBirthdayNotes(key, quality).map((note, i) => ({
+    ...note,
+    beats: HAPPY_BIRTHDAY_BEATS[i],
+  }));
+  return Array.from({ length: HAPPY_BIRTHDAY_SENTENCE_COUNT }, () => phrase).flat();
 }

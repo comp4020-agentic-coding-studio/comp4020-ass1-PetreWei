@@ -1,7 +1,7 @@
 import {
   KEYS,
   getDiatonicChords,
-  getHappyBirthdayNotes,
+  getHappyBirthdaySequence,
   getKeyColor,
   getNeighborIndices,
   getRelativeMinorTonicPitchClass,
@@ -9,7 +9,7 @@ import {
   getWheelNumerals,
   pitchClassToFrequency,
 } from "../lib/circleOfFifths.ts";
-import type { ChordQuality, KeyQuality, TriadNote } from "../lib/circleOfFifths.ts";
+import type { ChordQuality, HappyBirthdayNote, KeyQuality, TriadNote } from "../lib/circleOfFifths.ts";
 
 type PlaybackMode = "chord" | "arpeggio";
 
@@ -134,16 +134,78 @@ function playSingleNote(pitchClass: number, octave: number): void {
   playNotes(notes, 0);
 }
 
-const HAPPY_BIRTHDAY_STEP_SECONDS = 0.42;
+const HAPPY_BIRTHDAY_BEAT_SECONDS = 0.32;
 
 let selectedIndex: number | null = null;
 let selectedQuality: KeyQuality | null = null;
 
+function playMelody(sequence: HappyBirthdayNote[]): void {
+  const context = getAudioContext();
+  const now = context.currentTime;
+  let elapsedBeats = 0;
+
+  for (const note of sequence) {
+    const frequency = pitchClassToFrequency(note.pitchClass, note.octave);
+    const startTime = now + elapsedBeats * HAPPY_BIRTHDAY_BEAT_SECONDS;
+    const durationSeconds = note.beats * HAPPY_BIRTHDAY_BEAT_SECONDS;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.value = frequency;
+
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.12, startTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + durationSeconds);
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(startTime);
+    oscillator.stop(startTime + durationSeconds + 0.02);
+
+    elapsedBeats += note.beats;
+  }
+}
+
+let pendingMelodyTimeouts: ReturnType<typeof setTimeout>[] = [];
+
+function highlightMelody(sequence: HappyBirthdayNote[]): void {
+  for (const timeoutId of pendingMelodyTimeouts) {
+    clearTimeout(timeoutId);
+  }
+  pendingMelodyTimeouts = [];
+
+  for (const pianoKey of pianoKeys) {
+    pianoKey.classList.remove("piano-key-active");
+  }
+
+  let elapsedBeats = 0;
+  for (const note of sequence) {
+    const startMs = elapsedBeats * HAPPY_BIRTHDAY_BEAT_SECONDS * 1000;
+    const endMs = (elapsedBeats + note.beats) * HAPPY_BIRTHDAY_BEAT_SECONDS * 1000;
+    const pianoKey = pianoKeys.find(
+      (key) =>
+        Number(key.dataset.pitchClass) === note.pitchClass &&
+        Number(key.dataset.octave) === note.octave,
+    );
+
+    if (pianoKey) {
+      pendingMelodyTimeouts.push(
+        setTimeout(() => pianoKey.classList.add("piano-key-active"), startMs),
+      );
+      pendingMelodyTimeouts.push(
+        setTimeout(() => pianoKey.classList.remove("piano-key-active"), endMs),
+      );
+    }
+
+    elapsedBeats += note.beats;
+  }
+}
+
 function playHappyBirthday(): void {
   if (selectedIndex === null || selectedQuality === null) return;
-  const notes = getHappyBirthdayNotes(KEYS[selectedIndex], selectedQuality);
-  highlightPianoKeys(notes, HAPPY_BIRTHDAY_STEP_SECONDS);
-  playNotes(notes, HAPPY_BIRTHDAY_STEP_SECONDS);
+  const sequence = getHappyBirthdaySequence(KEYS[selectedIndex], selectedQuality);
+  highlightMelody(sequence);
+  playMelody(sequence);
 }
 
 function updateSelection(index: number, quality: KeyQuality): void {
