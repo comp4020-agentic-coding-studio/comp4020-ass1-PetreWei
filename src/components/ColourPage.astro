@@ -11,8 +11,11 @@ interface Props {
 const { locale } = Astro.props;
 const t = stringsFor(locale);
 
-const MR_MARS_URL =
-  "https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm";
+// Named, not linked. The site has no external <a href> anywhere: CI's link
+// check crawls every distinct external URL each run, and hosts outside our
+// control have failed it twice without saying anything true about this page.
+// The full citation, URL included, is on the Index page as text.
+const MR_MARS_WORK = "Musical Colour Wheel";
 
 // Note names stay letters in every locale (a deliberate choice), so only the
 // "major"/"minor" word and the colour name are localised here.
@@ -30,7 +33,7 @@ const minorSwatches = KEYS.map((key) => ({
 
 const designed = t.colour.designed.replace(
   "{link}",
-  `<a href="${MR_MARS_URL}">Musical Colour Wheel</a>`,
+  `<cite lang="en">${MR_MARS_WORK}</cite>`,
 );
 ---
 

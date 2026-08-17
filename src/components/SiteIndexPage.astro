@@ -17,53 +17,57 @@ const entries = t.siteIndex.entries.map((entry) => ({
   href: pageHref(base, locale, entry.page),
 }));
 
-// Source titles and URLs are identical in every locale. Titles because
-// bibliographic convention keeps the title of an English-language work in
-// English (wrapped in lang="en" so a screen reader switches voice, WCAG
-// 3.1.2); URLs because pointing translated pages at localised Wikipedia
-// editions would take the site from 7 distinct external URLs to 23 and
-// re-trigger the rate-limiting that turns CI's link check red.
+// Citations are rendered as text, NOT as links, and the whole site now has no
+// external <a href> at all. CI's link check crawls every distinct external URL
+// on every run; third-party hosts we do not control have turned it red twice
+// (a 403 from bot protection, then a 429 from rate limiting), and neither
+// failure said anything true about this site. Text citations keep the
+// attribution and the URL a reader can copy, with nothing for a crawler to
+// follow. `url` is deliberately a plain string, not an href.
+//
+// Titles stay English in every locale by bibliographic convention (wrapped in
+// lang="en" so a screen reader switches voice — WCAG 3.1.2, Language of Parts).
 const references = [
   {
     publisher: "Mr Mars",
     title: "Musical Colour Wheel",
-    href: "https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
+    url: "https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
     note: t.siteIndex.references.mrMars,
   },
   {
     publisher: "Wikipedia",
     title: "Chromesthesia",
-    href: "https://en.wikipedia.org/wiki/Chromesthesia",
+    url: "https://en.wikipedia.org/wiki/Chromesthesia",
     note: t.siteIndex.references.chromesthesia,
   },
   {
     publisher: "Wikipedia",
     title: "Circle of fifths",
-    href: "https://en.wikipedia.org/wiki/Circle_of_fifths",
+    url: "https://en.wikipedia.org/wiki/Circle_of_fifths",
     note: t.siteIndex.references.circleOfFifths,
   },
   {
     publisher: "Wikipedia",
     title: "Roman numeral analysis",
-    href: "https://en.wikipedia.org/wiki/Roman_numeral_analysis",
+    url: "https://en.wikipedia.org/wiki/Roman_numeral_analysis",
     note: t.siteIndex.references.romanNumerals,
   },
   {
     publisher: "Wikipedia",
     title: "12 equal temperament",
-    href: "https://en.wikipedia.org/wiki/12_equal_temperament",
+    url: "https://en.wikipedia.org/wiki/12_equal_temperament",
     note: t.siteIndex.references.equalTemperament,
   },
   {
     publisher: "Musicca",
     title: "Circle of Fifths",
-    href: "https://www.musicca.com/circle-of-fifths",
+    url: "https://www.musicca.com/circle-of-fifths",
     note: t.siteIndex.references.musicca,
   },
   {
     publisher: "Chromatone",
     title: "Circle of Fifths",
-    href: "https://fifths.chromatone.center/",
+    url: "https://fifths.chromatone.center/",
     note: t.siteIndex.references.chromatone,
   },
 ];
@@ -96,8 +100,9 @@ const references = [
       {
         references.map((reference) => (
           <li>
-            {reference.publisher}, <a href={reference.href} lang="en">"{reference.title}"</a>
+            {reference.publisher}, <cite lang="en">"{reference.title}"</cite>
             {" "}{reference.note}
+            {" "}<span class="reference-url" lang="en">{reference.url}</span>
           </li>
         ))
       }

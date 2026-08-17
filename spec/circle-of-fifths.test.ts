@@ -811,57 +811,67 @@ describe("the built site as a whole", () => {
     }
   });
 
-  // CI's link check crawls every distinct external URL concurrently and
-  // Wikipedia 429s a burst of them from a shared runner IP — ten turned the
-  // check red once already. These two caps are the guard; raising either is a
-  // deliberate decision, not a side effect of adding a citation or a locale.
-  const externalUrls = (doc: Document) =>
-    hrefs(doc, "a[href^='https://']");
-
-  it("keeps the number of distinct external URLs low enough for the link check", () => {
-    const external = new Set(pages.flatMap(({ doc }) => externalUrls(doc)));
-    expect(external.size, [...external].join("\n")).toBeLessThanOrEqual(8);
-    const wikipedia = [...external].filter((url) => url.includes("wikipedia.org"));
-    expect(wikipedia.length, wikipedia.join("\n")).toBeLessThanOrEqual(4);
+  // CI's link check crawls every external URL it can find, on every run.
+  // Third-party hosts turned it red twice — a 403 from bot protection and a
+  // 429 from rate limiting — neither of which said anything true about this
+  // site. So the site now links to nothing external at all: citations are
+  // rendered as text instead. This is the guard on that, and it is much
+  // stronger than the URL-count ceiling it replaced.
+  it("links to nothing external, anywhere", () => {
+    for (const { name, doc } of pages) {
+      const external = Array.from(doc.querySelectorAll("a[href]"))
+        .map((a) => a.getAttribute("href") ?? "")
+        .filter((href) => /^(https?:)?\/\//.test(href));
+      expect(external, `${name} still links off-site`).toEqual([]);
+    }
   });
 
-  it("cites the SAME external URLs in every locale", () => {
-    // Pointing translated pages at localised Wikipedia editions is the obvious
-    // instinct and would take the site from 7 distinct external URLs to 23,
-    // re-triggering the rate limit. Locking the set identical makes that
-    // impossible to do by accident.
-    const english = [...new Set(externalUrls(docFor("en", "siteIndex")))].sort();
-    expect(english.length).toBe(7);
-    for (const locale of LOCALES) {
-      expect(
-        [...new Set(externalUrls(docFor(locale, "siteIndex")))].sort(),
-        `${locale} cites different sources`,
-      ).toEqual(english);
+  it("links only to pages this site actually builds", () => {
+    const known = new Set(
+      LOCALES.flatMap((locale) => PAGE_ORDER.map((page) => pageHref(BASE, locale, page))),
+    );
+    for (const { name, doc } of pages) {
+      const unknown = hrefs(doc).filter((href) => !known.has(href));
+      expect(unknown, `${name} has links to nowhere`).toEqual([]);
     }
   });
 });
 
 describe.each(LOCALES)("references — %s", (locale) => {
   const doc = existsSync(DIST) ? docFor(locale, "siteIndex") : null;
-  const refs = () => hrefs(doc!, ".references-section a");
+  // Citations are text now, not links, so these read the rendered URL text
+  // rather than an href — that is the whole point of the change.
+  const citedUrls = () =>
+    Array.from(doc!.querySelectorAll(".references-section .reference-url")).map(
+      (el) => el.textContent?.trim() ?? "",
+    );
 
   it("gathers all seven sources into one reference list on the index page", () => {
     expect(doc!.querySelector(".references-section")).toBeTruthy();
     expect(doc!.querySelectorAll(".references li").length).toBe(7);
   });
 
-  it("cites Mr Mars' colour wheel, via the Internet Archive", () => {
-    // The original host 403s automated requests (CI included) while serving
-    // browsers fine, so the citation points at a dated snapshot: it resolves
-    // for the link check and can't rot.
-    expect(refs()).toContain(
+  it("shows every source's URL as copyable text, never as a link", () => {
+    expect(citedUrls().length).toBe(7);
+    expect(doc!.querySelectorAll(".references-section a").length).toBe(0);
+    for (const url of citedUrls()) {
+      expect(url, "a citation lost its URL").toMatch(/^https:\/\//);
+    }
+  });
+
+  it("credits Mr Mars, whose colour scheme the whole site borrows", () => {
+    // Attribution is the one citation that is not optional: every colour on
+    // the wheel comes from this source. Cited via the Internet Archive because
+    // the original host refuses automated requests and a snapshot cannot rot.
+    expect(citedUrls()).toContain(
       "https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
     );
+    expect(doc!.body.textContent).toContain("Mr Mars");
   });
 
   it("cites musicca.com and chromatone.center as circle-of-fifths references", () => {
-    expect(refs()).toContain("https://www.musicca.com/circle-of-fifths");
-    expect(refs()).toContain("https://fifths.chromatone.center/");
+    expect(citedUrls()).toContain("https://www.musicca.com/circle-of-fifths");
+    expect(citedUrls()).toContain("https://fifths.chromatone.center/");
   });
 
   it("cites the sources for the theory the prose pages explain", () => {
@@ -871,7 +881,7 @@ describe.each(LOCALES)("references — %s", (locale) => {
       "https://en.wikipedia.org/wiki/Roman_numeral_analysis",
       "https://en.wikipedia.org/wiki/12_equal_temperament",
     ]) {
-      expect(refs(), `missing reference: ${url}`).toContain(url);
+      expect(citedUrls(), `missing reference: ${url}`).toContain(url);
     }
   });
 
@@ -879,7 +889,6 @@ describe.each(LOCALES)("references — %s", (locale) => {
     // WCAG 3.1.2, Language of Parts: bibliographic convention keeps the title
     // of an English work in English, so it must be tagged as such on a page
     // that is otherwise not in English.
-    const titled = Array.from(doc!.querySelectorAll('.references-section a[lang="en"]'));
-    expect(titled.length).toBe(7);
+    expect(doc!.querySelectorAll('.references-section cite[lang="en"]').length).toBe(7);
   });
 });

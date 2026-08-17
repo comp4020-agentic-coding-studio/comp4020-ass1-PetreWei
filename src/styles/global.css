@@ -461,6 +461,16 @@ a {
   margin: 0.25rem 0;
 }
 
+/* Citations are text, not links (see the comment in SiteIndexPage.astro), so
+   the URL has to be readable and copyable on its own. overflow-wrap keeps a
+   long archive URL from pushing the page sideways at 390px. */
+.reference-url {
+  color: #666;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8em;
+  overflow-wrap: anywhere;
+}
+
 .theory-section {
   margin-bottom: 2rem;
 }
