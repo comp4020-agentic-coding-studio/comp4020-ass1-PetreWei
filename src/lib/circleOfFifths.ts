@@ -412,51 +412,58 @@ export const NATURAL_MINOR_SCALE_INTERVALS: readonly number[] = [0, 2, 3, 5, 7, 
 
 interface HappyBirthdayNoteSpec {
   readonly degree: number;
-  readonly octaveAbove: 0 | 1;
+  // Which octave, relative to the tonic's own, this note sits in. The tune
+  // opens on the dominant a fifth *below* the tonic (-1) and climbs from
+  // there, so its last line — the highest one — sits entirely at 0, above
+  // the tonic. Getting this wrong is what previously dropped that last line
+  // a full octave below the three before it.
+  readonly octave: -1 | 0;
   readonly beats: number;
 }
 
 // "Happy Birthday to You"'s 4 sung lines, transcribed as scale degrees
 // (0 = tonic ... 6 = leading tone, indexing MAJOR_SCALE_INTERVALS /
-// NATURAL_MINOR_SCALE_INTERVALS) plus which octave above the tonic's own
-// octave each note sits, so the same shape transposes into any key — major
-// or natural minor. In C major this reads: line 1 "G G A G C(up) B" (held),
-// line 2 "G G A G D(up) C(up)" (held), line 3 "G G G(up) E(up) C(up) B A"
-// (held), line 4 "F F E C D C" (held) — the real tune in full, no line
-// repeated.
+// NATURAL_MINOR_SCALE_INTERVALS) plus each note's octave relative to the
+// tonic, so the same shape transposes into any key — major or natural minor.
+// In C major, with the tonic at C5, this reads exactly as the tune is sung:
+// line 1 "G4 G4 A4 G4 C5 B4", line 2 "G4 G4 A4 G4 D5 C5", line 3
+// "G4 G4 G5 E5 C5 B4 A4", line 4 "F5 F5 E5 C5 D5 C5" — no line repeated,
+// rising across the four lines rather than falling back down at the end.
+// The whole tune spans exactly one octave, from that opening low dominant
+// up to the dominant above the tonic (line 3's leap).
 export const HAPPY_BIRTHDAY_LINES: readonly (readonly HappyBirthdayNoteSpec[])[] = [
   [
-    { degree: 4, octaveAbove: 0, beats: 0.5 },
-    { degree: 4, octaveAbove: 0, beats: 0.5 },
-    { degree: 5, octaveAbove: 0, beats: 1 },
-    { degree: 4, octaveAbove: 0, beats: 1 },
-    { degree: 0, octaveAbove: 1, beats: 1 },
-    { degree: 6, octaveAbove: 0, beats: 2 },
+    { degree: 4, octave: -1, beats: 0.5 },
+    { degree: 4, octave: -1, beats: 0.5 },
+    { degree: 5, octave: -1, beats: 1 },
+    { degree: 4, octave: -1, beats: 1 },
+    { degree: 0, octave: 0, beats: 1 },
+    { degree: 6, octave: -1, beats: 2 },
   ],
   [
-    { degree: 4, octaveAbove: 0, beats: 0.5 },
-    { degree: 4, octaveAbove: 0, beats: 0.5 },
-    { degree: 5, octaveAbove: 0, beats: 1 },
-    { degree: 4, octaveAbove: 0, beats: 1 },
-    { degree: 1, octaveAbove: 1, beats: 1 },
-    { degree: 0, octaveAbove: 1, beats: 2 },
+    { degree: 4, octave: -1, beats: 0.5 },
+    { degree: 4, octave: -1, beats: 0.5 },
+    { degree: 5, octave: -1, beats: 1 },
+    { degree: 4, octave: -1, beats: 1 },
+    { degree: 1, octave: 0, beats: 1 },
+    { degree: 0, octave: 0, beats: 2 },
   ],
   [
-    { degree: 4, octaveAbove: 0, beats: 0.5 },
-    { degree: 4, octaveAbove: 0, beats: 0.5 },
-    { degree: 4, octaveAbove: 1, beats: 1 },
-    { degree: 2, octaveAbove: 1, beats: 1 },
-    { degree: 0, octaveAbove: 1, beats: 1 },
-    { degree: 6, octaveAbove: 0, beats: 1 },
-    { degree: 5, octaveAbove: 0, beats: 2 },
+    { degree: 4, octave: -1, beats: 0.5 },
+    { degree: 4, octave: -1, beats: 0.5 },
+    { degree: 4, octave: 0, beats: 1 },
+    { degree: 2, octave: 0, beats: 1 },
+    { degree: 0, octave: 0, beats: 1 },
+    { degree: 6, octave: -1, beats: 1 },
+    { degree: 5, octave: -1, beats: 2 },
   ],
   [
-    { degree: 3, octaveAbove: 0, beats: 0.5 },
-    { degree: 3, octaveAbove: 0, beats: 0.5 },
-    { degree: 2, octaveAbove: 0, beats: 1 },
-    { degree: 0, octaveAbove: 0, beats: 1 },
-    { degree: 1, octaveAbove: 0, beats: 1 },
-    { degree: 0, octaveAbove: 0, beats: 2 },
+    { degree: 3, octave: 0, beats: 0.5 },
+    { degree: 3, octave: 0, beats: 0.5 },
+    { degree: 2, octave: 0, beats: 1 },
+    { degree: 0, octave: 0, beats: 1 },
+    { degree: 1, octave: 0, beats: 1 },
+    { degree: 0, octave: 0, beats: 2 },
   ],
 ];
 
@@ -464,15 +471,31 @@ export interface HappyBirthdayNote extends TriadNote {
   readonly beats: number;
 }
 
+// Semitones from the tune's lowest note (the dominant below the tonic, where
+// every line but the last begins) up to the tonic itself.
+const HAPPY_BIRTHDAY_LOW_NOTE_TO_TONIC = 5;
+
 // Flattens all 4 lines into one playable sequence, resolving each note's
-// (pitchClass, octave) with the same keyboardOctaveFor helper triads use —
-// so every melody note is guaranteed to exist among PIANO_KEYS too.
+// (pitchClass, octave) with the same keyboardOctaveFor helper triads use.
+//
+// Anchoring on the tune's *lowest* note rather than on the tonic is what keeps
+// every transposition on the rendered keyboard. That low note is the dominant,
+// and keyboardOctaveFor always places a pitch class somewhere in the
+// keyboard's first octave (G4–F♯5); since the tune spans exactly one octave
+// from there, its top note can never climb past the keyboard's last key.
+// Anchoring on the tonic instead pushed the top note off the high end for
+// half of the 24 key/quality combinations, which left the highlight showing a
+// different octave than the one actually sounding.
 export function getHappyBirthdaySequence(key: KeyInfo, quality: KeyQuality): HappyBirthdayNote[] {
   const tonicPitchClass =
     quality === "major" ? key.tonicPitchClass : getRelativeMinorTonicPitchClass(key.tonicPitchClass);
   const intervals = quality === "major" ? MAJOR_SCALE_INTERVALS : NATURAL_MINOR_SCALE_INTERVALS;
+  const lowNotePitchClass = (tonicPitchClass + intervals[4]) % 12;
   return HAPPY_BIRTHDAY_LINES.flat().map((note) => ({
-    ...keyboardOctaveFor(tonicPitchClass, intervals[note.degree] + note.octaveAbove * 12),
+    ...keyboardOctaveFor(
+      lowNotePitchClass,
+      intervals[note.degree] + note.octave * 12 + HAPPY_BIRTHDAY_LOW_NOTE_TO_TONIC,
+    ),
     beats: note.beats,
   }));
 }

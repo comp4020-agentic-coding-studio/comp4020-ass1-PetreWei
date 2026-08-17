@@ -189,20 +189,55 @@ describe("circle of fifths: pure logic", () => {
     }
   });
 
-  it("keeps every Happy Birthday note's pitch class available on the keyboard, even when its exact octave sits outside the 2-octave window", () => {
-    // The full song spans nearly 2 octaves relative to the tonic, so for keys
-    // whose tonic already sits high in its own register, the exact transposed
-    // octave of the highest notes can fall above the keyboard's fixed G4–F♯6
-    // range — the pitch is still musically correct (and still played exactly,
-    // since audio doesn't depend on the on-screen keys), it just means the
-    // client script's key-highlight falls back to the nearest available
-    // octave of the same pitch class rather than an exact match.
-    const pitchClassesOnKeyboard = new Set(PIANO_KEYS.map((k) => k.pitchClass));
+  it("lands every Happy Birthday note of every transposition on an exact rendered key, octave included", () => {
+    // The highlight looks up (pitchClass, octave) exactly, so anything not on
+    // the keyboard would light no key at all — or, worse, before the melody
+    // was anchored on its own lowest note, light the wrong octave. The tune
+    // spans exactly one octave and the keyboard spans two, so there is room
+    // for all 24 transpositions; this asserts it holds for every one of them.
+    const keysOnKeyboard = new Set(PIANO_KEYS.map((k) => `${k.pitchClass}:${k.octave}`));
     for (const key of KEYS) {
       for (const quality of ["major", "minor"] as const) {
         for (const note of getHappyBirthdaySequence(key, quality)) {
-          expect(pitchClassesOnKeyboard.has(note.pitchClass)).toBe(true);
+          expect(
+            keysOnKeyboard.has(`${note.pitchClass}:${note.octave}`),
+            `${key.name} ${quality}: pitch class ${note.pitchClass} octave ${note.octave} is not a rendered key`,
+          ).toBe(true);
         }
+      }
+    }
+  });
+
+  it("keeps the last line of Happy Birthday above the first, never an octave below it", () => {
+    // The regression this guards: transcribing the opening dominant *above*
+    // the tonic instead of below it left the final line — the tune's highest
+    // — sounding a full octave under the three lines before it.
+    const semitones = (note: { pitchClass: number; octave: number }) =>
+      note.octave * 12 + note.pitchClass;
+    for (const key of KEYS) {
+      for (const quality of ["major", "minor"] as const) {
+        const sequence = getHappyBirthdaySequence(key, quality);
+        const firstLineOpening = sequence[0];
+        const lastLine = sequence.slice(-6);
+        const label = `${key.name} ${quality}`;
+        // "Happy birth-" of the last line is the tune's peak region: its
+        // opening subdominant sits a minor 7th above the opening dominant.
+        expect(semitones(lastLine[0]) - semitones(firstLineOpening), label).toBe(10);
+        // And no note anywhere falls below that opening dominant.
+        for (const note of sequence) {
+          expect(semitones(note), label).toBeGreaterThanOrEqual(semitones(firstLineOpening));
+        }
+      }
+    }
+  });
+
+  it("spans exactly one octave, from the dominant below the tonic to the dominant above it", () => {
+    const semitones = (note: { pitchClass: number; octave: number }) =>
+      note.octave * 12 + note.pitchClass;
+    for (const key of KEYS) {
+      for (const quality of ["major", "minor"] as const) {
+        const pitches = getHappyBirthdaySequence(key, quality).map(semitones);
+        expect(Math.max(...pitches) - Math.min(...pitches), `${key.name} ${quality}`).toBe(12);
       }
     }
   });
@@ -337,16 +372,31 @@ describe("circle of fifths: pure logic", () => {
     const sequence = getHappyBirthdaySequence(cMajor, "major");
     expect(sequence.length).toBe(25);
 
-    // Line 1 ("Happy birthday to you") starts on Sol (scale degree 4).
+    // The whole tune in C major, note for note as it is actually sung, with
+    // the tonic at C5: it opens on the G *below* that tonic and never dips
+    // under it again.
+    // Line 1 "Happy birthday to you" — G4 G4 A4 G4 C5 B4.
     expect(sequence.slice(0, 6)).toEqual([
-      { pitchClass: 7, octave: 5, beats: 0.5 },
-      { pitchClass: 7, octave: 5, beats: 0.5 },
-      { pitchClass: 9, octave: 5, beats: 1 },
-      { pitchClass: 7, octave: 5, beats: 1 },
-      { pitchClass: 0, octave: 6, beats: 1 },
-      { pitchClass: 11, octave: 5, beats: 2 },
+      { pitchClass: 7, octave: 4, beats: 0.5 },
+      { pitchClass: 7, octave: 4, beats: 0.5 },
+      { pitchClass: 9, octave: 4, beats: 1 },
+      { pitchClass: 7, octave: 4, beats: 1 },
+      { pitchClass: 0, octave: 5, beats: 1 },
+      { pitchClass: 11, octave: 4, beats: 2 },
     ]);
-    // Line 4 ("Happy birthday to you") starts a step lower, on Fa (degree 3).
+    // Line 3 "Happy birthday dear <name>" — G4 G4 G5 E5 C5 B4 A4, whose
+    // octave leap up to G5 is the tune's highest note.
+    expect(sequence.slice(12, 19)).toEqual([
+      { pitchClass: 7, octave: 4, beats: 0.5 },
+      { pitchClass: 7, octave: 4, beats: 0.5 },
+      { pitchClass: 7, octave: 5, beats: 1 },
+      { pitchClass: 4, octave: 5, beats: 1 },
+      { pitchClass: 0, octave: 5, beats: 1 },
+      { pitchClass: 11, octave: 4, beats: 1 },
+      { pitchClass: 9, octave: 4, beats: 2 },
+    ]);
+    // Line 4 "Happy birthday to you" — F5 F5 E5 C5 D5 C5, sitting above the
+    // tonic, not an octave below the lines before it.
     expect(sequence.slice(-6)).toEqual([
       { pitchClass: 5, octave: 5, beats: 0.5 },
       { pitchClass: 5, octave: 5, beats: 0.5 },
@@ -361,10 +411,14 @@ describe("circle of fifths: pure logic", () => {
     const ebMajor = KEYS.find((k) => k.name === "E♭")!;
     const sequence = getHappyBirthdaySequence(ebMajor, "minor");
     expect(sequence.length).toBe(25);
-    // Its relative minor is C minor. Line 1's 6th note lands on the natural
-    // (flattened) 7th degree — pitch class 10, not major's 11 — the one note
-    // in line 1 where the minor scale actually diverges from the major one.
-    expect(sequence[5]).toEqual({ pitchClass: 10, octave: 5, beats: 2 });
+    // Its relative minor is C minor, so this reads G4 G4 A♭4 G4 C5 B♭4.
+    // Line 1's 6th note lands on the natural (flattened) 7th degree — pitch
+    // class 10, not major's 11 — the one note in line 1 where the minor scale
+    // actually diverges from the major one.
+    expect(sequence[5]).toEqual({ pitchClass: 10, octave: 4, beats: 2 });
+    // The 3rd note is the flattened 6th (A♭, pitch class 8) where C major's
+    // line 1 has a natural A.
+    expect(sequence[2]).toEqual({ pitchClass: 8, octave: 4, beats: 1 });
   });
 });
 

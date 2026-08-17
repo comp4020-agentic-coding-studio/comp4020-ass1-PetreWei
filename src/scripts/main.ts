@@ -97,22 +97,16 @@ function playNotes(notes: TriadNote[], stepSeconds: number): void {
 
 let pendingHighlightTimeouts: ReturnType<typeof setTimeout>[] = [];
 
-// A transposed melody's exact octave can occasionally fall outside the
-// on-screen keyboard's fixed 2-octave window (it's the correct pitch, just
-// higher/lower than this display goes) — the audio always plays the exact
-// note regardless, but for the highlight we fall back to whichever key on
-// screen shares the same pitch class, closest in octave to the real one.
+// Exact (pitch class + octave) only, deliberately: every triad tone and every
+// melody note is built by keyboardOctaveFor and so is guaranteed by the spec
+// to exist on the rendered keyboard. This used to fall back to the nearest
+// octave of the same pitch class, which meant an out-of-range note lit up a
+// key that wasn't the one sounding — a wrong highlight looks the same as a
+// right one, so no highlight is the honest failure mode.
 function findPianoKey(pitchClass: number, octave: number): HTMLElement | undefined {
-  const exact = pianoKeys.find(
+  return pianoKeys.find(
     (key) => Number(key.dataset.pitchClass) === pitchClass && Number(key.dataset.octave) === octave,
   );
-  if (exact) return exact;
-  return pianoKeys
-    .filter((key) => Number(key.dataset.pitchClass) === pitchClass)
-    .sort(
-      (a, b) =>
-        Math.abs(Number(a.dataset.octave) - octave) - Math.abs(Number(b.dataset.octave) - octave),
-    )[0];
 }
 
 function highlightPianoKeys(notes: TriadNote[], stepSeconds: number): void {
