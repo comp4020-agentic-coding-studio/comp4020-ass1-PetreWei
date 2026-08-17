@@ -528,14 +528,14 @@ describe("circle of fifths: built page structure (static parse, no script execut
     expect(doc!.querySelector(".wedge-border")).toBeFalsy();
   });
 
-  it("splits the one enharmonic major wedge's name into 2 spans with the flat spelling on the right, no slash", () => {
+  it("splits the one enharmonic major wedge's name into 2 spans, flat spelling first, with no slash or space", () => {
     const fSharpButton = doc!.querySelector('button[data-mode="major"][data-key="F♯ / G♭"]');
     expect(fSharpButton).toBeTruthy();
     const parts = Array.from(fSharpButton!.querySelectorAll(".wedge-name-part")).map(
       (el) => el.textContent?.trim(),
     );
-    expect(parts).toEqual(["F♯", "G♭"]);
-    expect(fSharpButton!.querySelector(".wedge-name")?.textContent).not.toContain("/");
+    expect(parts).toEqual(["G♭", "F♯"]);
+    expect(fSharpButton!.querySelector(".wedge-name")?.textContent?.trim()).toBe("G♭F♯");
   });
 
   it("renders a chord/arpeggio playback toggle, defaulting to arpeggio", () => {
