@@ -3,14 +3,18 @@ import Layout from "../layouts/Layout.astro";
 import { KEYS, PIANO_KEYS, getAccidentalBadgeText, getKeyColor } from "../lib/circleOfFifths.ts";
 
 const BADGE_RADIUS_PERCENT = 49.5;
-const MAJOR_RING = { inner: 29, outer: 45 };
+// The major ring is shrunk (outer 40, not all the way to the badges at
+// 49.5) so its roman numeral can sit past its coloured band, on the plain
+// background, the same way the minor ring's numeral already sits below
+// MINOR_RING.inner — see MAJOR_NUMERAL_RADIUS_PERCENT below.
+const MAJOR_RING = { inner: 29, outer: 40 };
 const MINOR_RING = { inner: 15, outer: 26 };
 const MAJOR_LABEL_RADIUS_PERCENT = (MAJOR_RING.inner + MAJOR_RING.outer) / 2;
 const MINOR_LABEL_RADIUS_PERCENT = (MINOR_RING.inner + MINOR_RING.outer) / 2;
-// Numerals sit near each ring's own outer/inner edge (not the label's
-// mid-ring position) so they never collide with the accidental badges just
-// outside the major ring at BADGE_RADIUS_PERCENT.
-const MAJOR_NUMERAL_RADIUS_PERCENT = MAJOR_RING.outer - 2;
+// Sits in the gap between the (now shrunk) major ring and the accidental
+// badges at BADGE_RADIUS_PERCENT — outside the coloured band, at the same
+// radius the numeral used to sit at when it was still inside that band.
+const MAJOR_NUMERAL_RADIUS_PERCENT = 43;
 // Sits inside the hole/minor-ring gap, below MINOR_RING.inner, so the
 // numeral never sits on top of the coloured minor-ring band or its name.
 const MINOR_NUMERAL_RADIUS_PERCENT = 13;
@@ -206,7 +210,7 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                 clips its descendants too), so this has to be a sibling, not a
                 child, or it would be clipped away and invisible. */}
                 <span
-                  class="wedge-numeral wedge-numeral-major"
+                  class="wedge-numeral"
                   data-testid="wedge-numeral"
                   data-index={key.index}
                   data-mode="major"
@@ -251,7 +255,7 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                 and, since it's no longer painted over a coloured wedge, it
                 needs a dark ink instead of the wedge's light --wedge-ink. */}
                 <span
-                  class="wedge-numeral wedge-numeral-minor"
+                  class="wedge-numeral"
                   data-testid="wedge-numeral"
                   data-index={key.index}
                   data-mode="minor"

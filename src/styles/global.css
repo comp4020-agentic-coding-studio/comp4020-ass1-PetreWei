@@ -176,27 +176,20 @@ a {
   margin-right: 0.2em;
 }
 
+/* Both rings' numerals sit outside their own coloured band, on the plain
+   page background (see the markup comments in index.astro), so both use
+   a dark ink rather than --wedge-ink, which is tuned for a coloured wedge. */
 .wedge-numeral {
   position: absolute;
   z-index: 1;
   left: var(--label-left);
   top: var(--label-top);
   transform: translate(-50%, -50%);
+  color: #1a1a1a;
   font-size: clamp(0.55rem, 1.6vw, 0.75rem);
   font-weight: 700;
   min-height: 1em;
   pointer-events: none;
-}
-
-.wedge-numeral-major {
-  color: var(--wedge-ink);
-}
-
-/* Sits off the coloured minor ring, on the plain page background, so it
-   needs a dark ink instead of --wedge-ink (which is tuned for legibility
-   against a coloured wedge). */
-.wedge-numeral-minor {
-  color: #1a1a1a;
 }
 
 .key-wedge[aria-pressed="true"] .wedge-name,
