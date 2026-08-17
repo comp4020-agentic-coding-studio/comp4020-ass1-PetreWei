@@ -52,6 +52,18 @@ one note.
    390×844
    ([`b93f5e8`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-PetreWei/commit/b93f5e8)).
 
+4. **Trusting the API over a stale push message.** After bumping dependencies
+   (`pnpm update`) to clear GitHub's Dependabot warnings, `git push` still
+   reported "9 vulnerabilities" on the branch. The obvious read is that the
+   update didn't fully work and more bumping is needed. Instead of guessing
+   from that count, I queried the Dependabot Alerts API directly
+   (`gh api repos/.../dependabot/alerts?state=open`) and got back an empty
+   list — every alert (nanoid, js-yaml, nested `undici` advisories, fast-uri,
+   postcss) was already `state: fixed` by the one update. The push message was
+   just counting from before Dependabot finished rescanning the new lockfile,
+   not a sign of unresolved work
+   ([`01699ad`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-PetreWei/commit/01699ad)).
+
 ## Before you ship
 
 *Note to self: re-read this against the actual final commit history before the
