@@ -12,6 +12,7 @@ export const es: Strings = {
     siteIndex: "Índice",
     primaryLabel: "Principal",
     languageLabel: "Idioma",
+    darkMode: "Modo oscuro",
   },
 
   titles: {

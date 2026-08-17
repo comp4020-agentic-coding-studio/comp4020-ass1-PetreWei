@@ -745,8 +745,18 @@ describe.each(localePagePairs)("$locale/$page (static parse)", ({ locale, page }
     expect(current[0].textContent?.trim()).toBe(t.nav[page]);
   });
 
-  it("carries no client script — the interactive parts live on the home page", () => {
-    expect(doc!.querySelectorAll("script").length).toBe(0);
+  it("carries no app bundle — the interactive parts live on the home page", () => {
+    // Was "no script at all". The theme has to be applied before first paint or
+    // a reader who chose dark gets a flash of the light page on every
+    // navigation, and that means one tiny inline script in <head> on every
+    // page. The property worth protecting is the one that was always the point:
+    // no prose page pulls in the wheel/keyboard/audio bundle.
+    expect(doc!.querySelectorAll("script[src]").length).toBe(0);
+    const inline = Array.from(doc!.querySelectorAll("script"));
+    expect(inline.length).toBe(1);
+    // It is the theme bootstrap, and it is small — not app logic in disguise.
+    expect(inline[0].textContent).toContain("prefers-color-scheme");
+    expect(inline[0].textContent!.length).toBeLessThan(2500);
   });
 
   it("keeps any wide table inside a scroll box, so the page never scrolls sideways", () => {

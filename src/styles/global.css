@@ -1,9 +1,91 @@
+/* ---------------------------------------------------------------------------
+   Theme tokens.
+
+   The 24 wheel colours are NOT here and do not change with the theme: they are
+   the site's subject matter, cited from Mr Mars' scheme, and each wedge's label
+   ink is already chosen per-wedge by measured contrast, so the wheel stays
+   WCAG AA in either theme. Only the page around it is themed.
+
+   The accent lightens in dark mode: #0b5fff is a fine link colour on white and
+   far too dark on a near-black page.
+   --------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  /* Fallback only, and NOT themed: each wedge overrides --wedge-ink inline
+     with whichever of white / near-black actually contrasts with its own
+     colour (getReadableInk). A single uniform ink left 9 of 24 labels under
+     WCAG AA, which is why this is a fallback rather than the value in use. */
+  --wedge-ink: #fff;
+
+  /* Also NOT themed: a piano key's colour is what identifies it, so white keys
+     stay light and black keys stay dark in both themes. Only the page around
+     the keyboard changes. */
+  --piano-black: #1a1a1a;
+  --piano-edge: #1a1a1a;
+  --piano-ink-on-white: #1a1a1a;
+  --surface: #fff;
+  --surface-raised: #fff;
+  --surface-wash: #f2f6ff;
+  --ink: #1a1a1a;
+  --ink-muted: #444;
+  --ink-faint: #666;
+  --line: #ccc;
+  --line-soft: #ddd;
+  --accent: #0b5fff;
+  --accent-strong: #094cd1;
+  --on-accent: #fff;
+  --sector-stroke: #c7ccd4;
+  --focus-halo: #fff;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface: #14161a;
+  --surface-raised: #1e2127;
+  --surface-wash: #232a3a;
+  --ink: #e9ecf1;
+  --ink-muted: #b3bac5;
+  --ink-faint: #99a1ad;
+  --line: #3a4049;
+  --line-soft: #2c313a;
+  --accent: #6ea8ff;
+  --accent-strong: #9dc4ff;
+  --on-accent: #10131a;
+  --sector-stroke: #6b7480;
+  --focus-halo: #14161a;
+}
+
+/* Before the head script runs there is no data-theme, so honour the OS here
+   too. Scoped to :root:not([data-theme]) so an explicit choice always wins. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --surface: #14161a;
+    --surface-raised: #1e2127;
+    --surface-wash: #232a3a;
+    --ink: #e9ecf1;
+    --ink-muted: #b3bac5;
+    --ink-faint: #99a1ad;
+    --line: #3a4049;
+    --line-soft: #2c313a;
+    --accent: #6ea8ff;
+    --accent-strong: #9dc4ff;
+    --on-accent: #10131a;
+    --sector-stroke: #6b7480;
+    --focus-halo: #14161a;
+  }
+}
+
 body {
   margin: 0;
   padding: 2rem;
   font-family: system-ui, sans-serif;
   line-height: 1.6;
-  color: #1a1a1a;
+  background: var(--surface);
+  color: var(--ink);
 }
 
 header,
@@ -13,7 +95,7 @@ main {
 }
 
 a {
-  color: #0b5fff;
+  color: var(--accent);
 }
 
 /* Wraps because five tabs measure wider than a 390px phone viewport, and a
@@ -25,29 +107,29 @@ a {
   padding: 0;
   margin: 0 0 1.5rem;
   list-style: none;
-  border-bottom: 2px solid #ddd;
+  border-bottom: 2px solid var(--line-soft);
 }
 
 .tab {
   padding: 0.5rem 1rem;
   text-decoration: none;
-  color: #444;
+  color: var(--ink-muted);
   font-weight: 600;
   border-bottom: 3px solid transparent;
 }
 
 .tab:hover {
-  color: #0b5fff;
+  color: var(--accent);
 }
 
 .tab:focus-visible {
-  outline: 3px solid #0b5fff;
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
 .tab[aria-current="page"] {
-  color: #0b5fff;
-  border-bottom-color: #0b5fff;
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 /* Language switcher: quieter than the page tabs, and wrapping for the same
@@ -61,22 +143,50 @@ a {
 }
 
 .lang-link {
-  color: #555;
+  color: var(--ink-muted);
   text-decoration: none;
 }
 
 .lang-link:hover {
-  color: #0b5fff;
+  color: var(--accent);
   text-decoration: underline;
 }
 
 .lang-link:focus-visible {
-  outline: 3px solid #0b5fff;
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
 .lang-link[aria-current="true"] {
-  color: #1a1a1a;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Sits with the language links because both are site-wide preferences. Styled
+   as a quiet toggle rather than a button-button; aria-pressed carries the
+   state, so the label never changes. */
+.theme-toggle {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: inherit;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.theme-toggle:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.theme-toggle[aria-pressed="true"] {
+  color: var(--ink);
   font-weight: 700;
 }
 
@@ -102,28 +212,28 @@ a {
 
 .mode-button {
   padding: 0.4rem 0.9rem;
-  border: 2px solid #ccc;
+  border: 2px solid var(--line);
   border-radius: 999px;
-  background: #fff;
-  color: #444;
+  background: var(--surface-raised);
+  color: var(--ink-muted);
   font-weight: 600;
   cursor: pointer;
 }
 
 .mode-button:hover {
-  border-color: #0b5fff;
-  color: #0b5fff;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .mode-button:focus-visible {
-  outline: 3px solid #0b5fff;
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
 .mode-button[aria-pressed="true"] {
-  border-color: #0b5fff;
-  background: #0b5fff;
-  color: #fff;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .circle-wrapper {
@@ -131,15 +241,8 @@ a {
   width: min(78vw, 26rem);
   aspect-ratio: 1 / 1;
   margin-inline: auto;
-  border: 1px solid #ccc;
+  border: 1px solid var(--line);
   border-radius: 50%;
-}
-
-/* Fallback only: each wedge overrides --wedge-ink inline with whichever of
-   white / near-black actually contrasts with its own colour (getReadableInk).
-   A single uniform ink left 9 of the 24 labels under WCAG AA. */
-:root {
-  --wedge-ink: #fff;
 }
 
 .key-wedge {
@@ -167,8 +270,8 @@ a {
    at all. */
 .key-wedge:focus-visible {
   outline: none;
-  filter: brightness(1.25) drop-shadow(0 0 2px #fff) drop-shadow(0 0 5px #0b5fff)
-    drop-shadow(0 0 9px #0b5fff);
+  filter: brightness(1.25) drop-shadow(0 0 2px var(--focus-halo)) drop-shadow(0 0 5px var(--accent))
+    drop-shadow(0 0 9px var(--accent));
 }
 
 .sector-border {
@@ -183,7 +286,7 @@ a {
 
 .sector-border path {
   fill: none;
-  stroke: #c7ccd4;
+  stroke: var(--sector-stroke);
   stroke-width: 0.4;
 }
 
@@ -216,7 +319,7 @@ a {
   left: var(--label-left);
   top: var(--label-top);
   transform: translate(-50%, -50%);
-  color: #1a1a1a;
+  color: var(--ink);
   font-size: clamp(0.55rem, 1.6vw, 0.75rem);
   font-weight: 700;
   min-height: 1em;
@@ -233,7 +336,7 @@ a {
   top: var(--btn-top);
   transform: translate(-50%, -50%);
   font-size: clamp(0.55rem, 1.6vw, 0.75rem);
-  color: #444;
+  color: var(--ink-muted);
   pointer-events: none;
 }
 
@@ -244,7 +347,7 @@ a {
   width: 55%;
   height: 55%;
   transform: translate(-50%, -50%);
-  border: 1px solid #ccc;
+  border: 1px solid var(--line);
   border-radius: 50%;
   pointer-events: none;
 }
@@ -261,7 +364,7 @@ a {
   gap: 0.1rem;
   text-align: center;
   font-size: clamp(0.55rem, 1.8vw, 0.75rem);
-  color: #444;
+  color: var(--ink-muted);
   pointer-events: none;
 }
 
@@ -272,7 +375,7 @@ a {
 .circle-center-name {
   font-weight: 700;
   font-size: clamp(0.7rem, 2.6vw, 1rem);
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 /* Colour names are the longest thing in this ~67px hole, and translation makes
@@ -292,7 +395,7 @@ a {
   margin: 0;
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
-  color: #444;
+  color: var(--ink-muted);
   text-align: center;
 }
 
@@ -318,13 +421,13 @@ a {
   margin: 0;
   font: inherit;
   appearance: none;
-  border: 1px solid #1a1a1a;
+  border: 1px solid var(--piano-edge);
   border-radius: 0 0 0.2rem 0.2rem;
   cursor: pointer;
 }
 
 .piano-key:focus-visible {
-  outline: 3px solid #0b5fff;
+  outline: 3px solid var(--accent);
   outline-offset: -3px;
   z-index: 3;
 }
@@ -343,6 +446,9 @@ a {
   font-size: 0.48rem;
 }
 
+/* The keyboard keeps a real piano's colours in both themes: white keys stay
+   light and black keys stay dark, because that is what identifies them. Only
+   the surrounding page changes. */
 .piano-key-white {
   top: 0;
   width: calc(100% / 15);
@@ -352,14 +458,14 @@ a {
 }
 
 .piano-key-white .piano-key-label {
-  color: #1a1a1a;
+  color: var(--piano-ink-on-white);
 }
 
 .piano-key-black {
   top: 0;
   width: calc(100% / 15 * 0.6);
   height: 60%;
-  background: #1a1a1a;
+  background: var(--piano-black);
   transform: translateX(-50%);
   z-index: 2;
 }
@@ -369,12 +475,12 @@ a {
 }
 
 .piano-key.piano-key-active {
-  background: #0b5fff;
-  border-color: #0b5fff;
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .piano-key.piano-key-active .piano-key-label {
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .happy-birthday {
@@ -388,33 +494,33 @@ a {
 
 .happy-birthday-button {
   padding: 0.5rem 1.2rem;
-  border: 2px solid #0b5fff;
+  border: 2px solid var(--accent);
   border-radius: 999px;
-  background: #0b5fff;
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
   font-weight: 600;
   cursor: pointer;
 }
 
 .happy-birthday-button:focus-visible {
-  outline: 3px solid #0b5fff;
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
 .happy-birthday-button:disabled {
-  border-color: #ccc;
-  background: #ccc;
+  border-color: var(--line);
+  background: var(--line);
   cursor: not-allowed;
 }
 
 .happy-birthday-button:hover:not(:disabled) {
-  background: #094cd1;
+  background: var(--accent-strong);
 }
 
 .happy-birthday-caption {
   margin: 0;
   font-size: 0.8rem;
-  color: #444;
+  color: var(--ink-muted);
 }
 
 .key-info {
@@ -430,7 +536,7 @@ a {
 .chord-table th,
 .chord-table td {
   padding: 0.45rem 0.6rem;
-  border: 1px solid #ccc;
+  border: 1px solid var(--line);
   text-align: left;
 }
 
@@ -463,11 +569,11 @@ a {
 }
 
 .chord-table-playable tbody tr:hover {
-  background: #f2f6ff;
+  background: var(--surface-wash);
 }
 
 .chord-table-playable tbody tr:focus-visible {
-  outline: 3px solid #0b5fff;
+  outline: 3px solid var(--accent);
   outline-offset: -2px;
 }
 
@@ -476,9 +582,9 @@ a {
 .references-section {
   margin-top: 3rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #ccc;
+  border-top: 1px solid var(--line);
   font-size: 0.85rem;
-  color: #444;
+  color: var(--ink-muted);
 }
 
 .references-section h2 {
@@ -500,7 +606,7 @@ a {
    the URL has to be readable and copyable on its own. overflow-wrap keeps a
    long archive URL from pushing the page sideways at 390px. */
 .reference-url {
-  color: #666;
+  color: var(--ink-faint);
   font-family: ui-monospace, monospace;
   font-size: 0.8em;
   overflow-wrap: anywhere;
@@ -523,7 +629,7 @@ a {
 .site-index-entry {
   padding-left: 1rem;
   margin-bottom: 1.5rem;
-  border-left: 3px solid #ddd;
+  border-left: 3px solid var(--line-soft);
 }
 
 .site-index-entry h2 {
@@ -536,7 +642,7 @@ a {
 }
 
 .site-index-topics {
-  color: #555;
+  color: var(--ink-muted);
   font-size: 0.85rem;
 }
 

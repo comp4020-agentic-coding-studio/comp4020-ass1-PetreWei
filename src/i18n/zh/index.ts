@@ -12,6 +12,7 @@ export const zh: Strings = {
     siteIndex: "索引",
     primaryLabel: "主导航",
     languageLabel: "语言",
+    darkMode: "深色模式",
   },
 
   titles: {

@@ -49,6 +49,60 @@ const languages = LOCALES.map((code) => ({
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{t.titles[page]}</title>
+    {/* The one script on a prose page, and it is inline and in <head> on
+    purpose: it has to set the theme BEFORE first paint, or a reader who chose
+    dark gets a flash of the light page on every navigation. It is also why the
+    toggle is wired by delegation on document rather than by looking the button
+    up — the button does not exist yet when this runs.
+
+    Written as a raw string so Astro leaves it inline instead of bundling it;
+    is:inline is what keeps it out of the shared module graph. */}
+    <script is:inline>
+      (() => {
+        const KEY = "theme";
+        const stored = (() => {
+          try {
+            return localStorage.getItem(KEY);
+          } catch {
+            return null; // private mode / storage disabled: fall back to the OS
+          }
+        })();
+        const apply = (theme) => {
+          document.documentElement.dataset.theme = theme;
+          for (const button of document.querySelectorAll("[data-theme-toggle]")) {
+            button.setAttribute("aria-pressed", String(theme === "dark"));
+          }
+        };
+        apply(
+          stored ??
+            (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+        );
+        // Keep following the OS while the reader has never chosen explicitly.
+        window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (event) => {
+          try {
+            if (localStorage.getItem(KEY)) return;
+          } catch {
+            /* fall through and follow the OS */
+          }
+          apply(event.matches ? "dark" : "light");
+        });
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest("[data-theme-toggle]")) return;
+          const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+          apply(next);
+          try {
+            localStorage.setItem(KEY, next);
+          } catch {
+            /* the choice just will not persist */
+          }
+        });
+        // aria-pressed is set above, but the button is parsed after this runs,
+        // so sync once the document is ready too.
+        document.addEventListener("DOMContentLoaded", () =>
+          apply(document.documentElement.dataset.theme),
+        );
+      })();
+    </script>
   </head>
   <body>
     <header>
@@ -63,8 +117,7 @@ const languages = LOCALES.map((code) => ({
       </nav>
       {/* A separate class from .tab, and aria-current="true" rather than
       "page": the page-tab nav above owns "page", and exactly one of those
-      being current is an asserted contract. Plain links, no JavaScript — the
-      prose pages ship no script at all and a test enforces that. */}
+      being current is an asserted contract. Plain links, no JavaScript. */}
       <nav class="langs" aria-label={t.nav.languageLabel}>
         {
           languages.map((language) => (
@@ -78,6 +131,14 @@ const languages = LOCALES.map((code) => ({
             </a>
           ))
         }
+        {/* A toggle button, so its state lives in aria-pressed and the label
+        never has to change — no "switch to X" wording to translate or keep in
+        sync. Sits in the language row because both are site-wide preferences.
+        aria-pressed starts at the server's best guess and is corrected by the
+        head script before paint. */}
+        <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false">
+          {t.nav.darkMode}
+        </button>
       </nav>
     </header>
     <slot />

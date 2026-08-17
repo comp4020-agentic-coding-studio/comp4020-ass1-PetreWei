@@ -44,6 +44,8 @@ export interface Strings {
     readonly siteIndex: string;
     readonly primaryLabel: string;
     readonly languageLabel: string;
+    /** Label of the dark-mode toggle button; its state is carried by aria-pressed. */
+    readonly darkMode: string;
   };
 
   /** <title> per page. */

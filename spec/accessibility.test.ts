@@ -98,6 +98,45 @@ describe("keyboard and focus", () => {
   });
 });
 
+describe("light / dark theme", () => {
+  it("defines every theme token in both themes", () => {
+    const css = cssText();
+    // The minifier drops the attribute quotes, so match either form.
+    const block = (pattern: RegExp) => css.match(pattern)?.[1] ?? "";
+    const names = (body: string) => new Set(body.match(/--[\w-]+(?=\s*:)/g) ?? []);
+    const light = names(block(/:root\s*\{([^}]*)\}/));
+    const dark = names(block(/:root\[data-theme=["']?dark["']?\]\s*\{([^}]*)\}/));
+    expect(light.size).toBeGreaterThan(10);
+    // Anything the light theme defines and the dark theme forgets keeps its
+    // light value on a dark page — the classic half-themed bug.
+    const themed = [...light].filter(
+      (name) => !["--wedge-ink", "--piano-black", "--piano-edge", "--piano-ink-on-white"].includes(name),
+    );
+    for (const name of themed) {
+      expect(dark, `${name} has no dark value`).toContain(name);
+    }
+  });
+
+  it("leaves the wheel and the piano out of the theme, on purpose", () => {
+    // The 24 wheel colours are the site's cited subject, and their label ink is
+    // chosen by measured contrast; a piano key's colour is what identifies it.
+    // Both must look the same in either theme, so neither may be redefined in
+    // the dark block.
+    const css = cssText();
+    const dark =
+      css.match(/:root\[data-theme=["']?dark["']?\]\s*\{([^}]*)\}/)?.[1] ?? "";
+    for (const name of ["--wedge-ink", "--piano-black", "--piano-edge", "--piano-ink-on-white"]) {
+      expect(dark, `${name} must not be themed`).not.toContain(name);
+    }
+  });
+
+  it("still honours the OS setting before any explicit choice", () => {
+    // The head script sets data-theme, but it must not be the only path: a
+    // prefers-color-scheme block covers the moment before it runs.
+    expect(cssText()).toMatch(/prefers-color-scheme:\s*dark/);
+  });
+});
+
 describe("a non-audio path to the content", () => {
   it.each(LOCALES)("%s home page names what is sounding, in text", (locale) => {
     const doc = existsSync(DIST) ? docFor(locale, "home") : null;
