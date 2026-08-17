@@ -283,6 +283,21 @@ export function getAccidentalBadgeText(key: KeyInfo): string {
   return "♮";
 }
 
+/**
+ * The single spelling to *display* for a key name. One key on the wheel is
+ * enharmonic and carries two spellings ("F♯ / G♭", "D♯ / E♭"); showing both
+ * made that wedge's label far longer than every other one, which overflowed on
+ * a phone. Only the sharp spelling is shown — it comes first in KEYS, and it
+ * is the one the sharp side of the circle arrives at.
+ *
+ * The full pair is still available on KEYS for anything that wants it: the
+ * wedge's data-key attribute and its aria-label both keep both spellings, so
+ * the key stays findable and a screen reader still announces both names.
+ */
+export function preferredSpelling(name: string): string {
+  return name.split(" / ")[0];
+}
+
 const MAJOR_DEGREE_NUMERALS: readonly string[] = ["I", "ii", "iii", "IV", "V", "vi", "vii°"];
 const MAJOR_DEGREE_QUALITIES: readonly ChordQuality[] = [
   "major",

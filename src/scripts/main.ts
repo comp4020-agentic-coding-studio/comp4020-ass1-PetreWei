@@ -7,6 +7,7 @@ import {
   getTriadNotes,
   getWheelNumerals,
   pitchClassToFrequency,
+  preferredSpelling,
 } from "../lib/circleOfFifths.ts";
 import type { ChordQuality, HappyBirthdayNote, KeyQuality, TriadNote } from "../lib/circleOfFifths.ts";
 import { localeFromHtmlLang } from "../lib/i18n.ts";
@@ -268,7 +269,7 @@ function updateSelection(index: number, quality: KeyQuality): void {
   }
 
   const isMinor = quality === "minor";
-  const displayName = isMinor ? key.relativeMinorName : key.name;
+  const displayName = preferredSpelling(isMinor ? key.relativeMinorName : key.name);
   const colorName = translateColorName(getKeyColor(index, quality).name, locale);
 
   if (placeholder) placeholder.hidden = true;

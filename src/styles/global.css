@@ -195,14 +195,6 @@ a {
   font-size: clamp(0.6rem, 1.8vw, 0.8rem);
 }
 
-/* The one enharmonic minor wedge renders both spellings run together with
-   no separator (e.g. "E♭mD♯m"), so it needs a smaller size to avoid
-   overflow. The major-ring equivalent ("G♭F♯") stays at the same size as
-   every other major wedge. */
-.key-wedge-minor .wedge-name.wedge-name-enharmonic {
-  font-size: clamp(0.46rem, 1.4vw, 0.6rem);
-}
-
 /* Both rings' numerals sit outside their own coloured band, on the plain
    page background (see the markup comments in index.astro), so both use
    a dark ink rather than --wedge-ink, which is tuned for a coloured wedge. */

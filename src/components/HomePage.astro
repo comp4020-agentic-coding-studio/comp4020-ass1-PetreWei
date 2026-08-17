@@ -1,5 +1,11 @@
 ---
-import { KEYS, PIANO_KEYS, getAccidentalBadgeText, getKeyColor } from "../lib/circleOfFifths.ts";
+import {
+  KEYS,
+  PIANO_KEYS,
+  getAccidentalBadgeText,
+  getKeyColor,
+  preferredSpelling,
+} from "../lib/circleOfFifths.ts";
 import type { Locale } from "../lib/i18n.ts";
 import { stringsFor } from "../i18n/index.ts";
 
@@ -107,20 +113,10 @@ function withPosition<T extends { index: number }>(key: T, radiusPercent: number
   };
 }
 
-// "Am", "Em", ... — and for the one enharmonic wedge, "D♯m / E♭m".
+// "Am", "Em", ... — and "D♯m" for the one enharmonic wedge, which shows only
+// its sharp spelling so its label is no longer than any other.
 function minorLabel(relativeMinorName: string) {
-  return relativeMinorName.split(" / ").map((name) => `${name}m`).join(" / ");
-}
-
-// Splits an enharmonic pair like "F♯ / G♭" into ["G♭", "F♯"] — flat first,
-// concatenated with no "/" and no space (renders as "G♭F♯") — so the two
-// spellings read as one compact label at the single enharmonic wedge
-// instead of overflowing it; returns null for every other, single-spelling
-// key name.
-function enharmonicParts(name: string): [string, string] | null {
-  if (!name.includes(" / ")) return null;
-  const [sharp, flat] = name.split(" / ");
-  return [flat, sharp];
+  return `${preferredSpelling(relativeMinorName)}m`;
 }
 
 const positionedMajorKeys = KEYS.map((key) => {
@@ -131,7 +127,7 @@ const positionedMajorKeys = KEYS.map((key) => {
     numeralTop: numeralPos.top,
     color: getKeyColor(key.index, "major"),
     clipPath: wedgePolygon(key.index, MAJOR_RING.inner, MAJOR_RING.outer),
-    nameParts: enharmonicParts(key.name),
+    label: preferredSpelling(key.name),
   };
 });
 
@@ -143,7 +139,7 @@ const positionedMinorKeys = KEYS.map((key) => {
     numeralTop: numeralPos.top,
     color: getKeyColor(key.index, "minor"),
     clipPath: wedgePolygon(key.index, MINOR_RING.inner, MINOR_RING.outer),
-    nameParts: enharmonicParts(minorLabel(key.relativeMinorName)),
+    label: minorLabel(key.relativeMinorName),
   };
 });
 
@@ -192,10 +188,10 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                   style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
                 >
                   <span
-                    class={`wedge-name ${key.nameParts ? "wedge-name-enharmonic" : ""}`}
+                    class="wedge-name"
                     style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}
                   >
-                    {key.nameParts ? (<><span class="wedge-name-part">{key.nameParts[0]}</span><span class="wedge-name-part">{key.nameParts[1]}</span></>) : (key.name)}
+                    {key.label}
                   </span>
                 </button>
                 {/* Sits outside the button's own clip-path (a clipped element
@@ -229,10 +225,10 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                   style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
                 >
                   <span
-                    class={`wedge-name ${key.nameParts ? "wedge-name-enharmonic" : ""}`}
+                    class="wedge-name"
                     style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}
                   >
-                    {key.nameParts ? (<><span class="wedge-name-part">{key.nameParts[0]}</span><span class="wedge-name-part">{key.nameParts[1]}</span></>) : (minorLabel(key.relativeMinorName))}
+                    {key.label}
                   </span>
                 </button>
                 {/* This numeral sits below MINOR_RING.inner, off the coloured

@@ -574,14 +574,9 @@ describe.each(LOCALES)(
     );
     expect(minorWedgeNames.length).toBe(12);
     for (const nameEl of minorWedgeNames) {
-      const parts = Array.from(nameEl.querySelectorAll(".wedge-name-part")).map(
-        (el) => el.textContent?.trim(),
-      );
-      // Most wedges render one plain name; the single enharmonic pair
-      // (D♯m / E♭m) renders as two separate spans instead of a slash-joined
-      // string, so it never overflows its wedge.
-      const names = parts.length > 0 ? parts : [nameEl.textContent?.trim()];
-      for (const name of names) expect(name).toMatch(/m$/);
+      // Every wedge, including the enharmonic one, is a single name — no
+      // slash, no second spelling. See the preferredSpelling test below.
+      expect(nameEl.textContent?.trim()).toMatch(/m$/);
       expect(nameEl.textContent).not.toContain("/");
     }
     const flatNames = Array.from(
@@ -604,14 +599,41 @@ describe.each(LOCALES)(
     expect(doc!.querySelector(".wedge-border")).toBeFalsy();
   });
 
-  it("splits the one enharmonic major wedge's name into 2 spans, flat spelling first, with no slash or space", () => {
-    const fSharpButton = doc!.querySelector('button[data-mode="major"][data-key="F♯ / G♭"]');
-    expect(fSharpButton).toBeTruthy();
-    const parts = Array.from(fSharpButton!.querySelectorAll(".wedge-name-part")).map(
-      (el) => el.textContent?.trim(),
-    );
-    expect(parts).toEqual(["G♭", "F♯"]);
-    expect(fSharpButton!.querySelector(".wedge-name")?.textContent?.trim()).toBe("G♭F♯");
+  it("shows only the sharp spelling on the one enharmonic wedge, so its label is no longer than any other", () => {
+    // This wedge is two keys spelled two ways. Showing both ("G♭F♯", "E♭mD♯m")
+    // made it much the longest label on the wheel and overflowed on a phone,
+    // so only the sharp spelling is displayed.
+    const major = doc!.querySelector('button[data-mode="major"][data-key="F♯ / G♭"]');
+    const minor = doc!.querySelector('button[data-mode="minor"][data-key="D♯ / E♭"]');
+    expect(major).toBeTruthy();
+    expect(minor).toBeTruthy();
+    expect(major!.querySelector(".wedge-name")?.textContent?.trim()).toBe("F♯");
+    expect(minor!.querySelector(".wedge-name")?.textContent?.trim()).toBe("D♯m");
+
+    // The dropped spelling is not merely hidden — it is gone from the label.
+    for (const button of [major!, minor!]) {
+      const label = button.querySelector(".wedge-name")!.textContent ?? "";
+      expect(label).not.toContain("♭");
+      expect(label).not.toContain("/");
+      // No leftover two-span markup.
+      expect(button.querySelectorAll(".wedge-name-part").length).toBe(0);
+    }
+
+    // Both spellings survive where they cost nothing: the data attribute keeps
+    // the key findable, and the aria-label still announces both to a screen
+    // reader — in this locale's own words for "flat" ("sol bemol", "降G").
+    expect(major!.getAttribute("aria-label")).toBe(t.home.enharmonicMajorLabel);
+    expect(minor!.getAttribute("aria-label")).toBe(t.home.enharmonicMinorLabel);
+  });
+
+  it("gives the enharmonic minor wedge the same label size as every other inner-ring wedge", () => {
+    // It used to carry a smaller font purely to fit two spellings; with one
+    // spelling it must match its neighbours, so no wedge is styled specially.
+    const minorLabels = Array.from(doc!.querySelectorAll('button[data-mode="minor"] .wedge-name'));
+    expect(minorLabels.length).toBe(12);
+    for (const label of minorLabels) {
+      expect(label.className.trim()).toBe("wedge-name");
+    }
   });
 
   it("renders a chord/arpeggio playback toggle, defaulting to arpeggio", () => {
