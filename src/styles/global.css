@@ -102,54 +102,68 @@ a {
   border-radius: 50%;
 }
 
-.key-button {
+:root {
+  --wedge-ink: #1a1a1a;
+}
+
+.key-wedge {
   position: absolute;
-  left: var(--btn-left);
-  top: var(--btn-top);
-  transform: translate(-50%, -50%);
-  width: clamp(2.25rem, 8vw, 3.25rem);
-  height: clamp(2.25rem, 8vw, 3.25rem);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #1a1a1a;
-  border-radius: 50%;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
   background: var(--key-color, #fff);
-  color: var(--key-text-color, #1a1a1a);
-  font-size: clamp(0.65rem, 2.2vw, 0.95rem);
-  line-height: 1;
   cursor: pointer;
 }
 
-.key-button:hover {
+.key-wedge:hover {
   filter: brightness(1.12);
 }
 
-.key-button:focus-visible {
-  outline: 3px solid #0b5fff;
-  outline-offset: 2px;
+.key-wedge:focus-visible {
+  filter: brightness(1.12) drop-shadow(0 0 0.25rem #0b5fff) drop-shadow(0 0 0.25rem #0b5fff);
 }
 
-.key-button[aria-pressed="true"] {
-  outline: 3px solid #1a1a1a;
-  outline-offset: 2px;
-  transform: translate(-50%, -50%) scale(1.12);
+.key-wedge[aria-pressed="true"] {
+  transform: scale(1.06);
+  filter: drop-shadow(0 0 0.3rem rgb(0 0 0 / 55%));
 }
 
-.key-button.neighbor-dominant {
-  border-color: #d97706;
-  border-style: dashed;
+.key-wedge.neighbor-dominant {
+  filter: drop-shadow(0 0 0.3rem #d97706) drop-shadow(0 0 0.3rem #d97706);
 }
 
-.key-button.neighbor-subdominant {
-  border-color: #059669;
-  border-style: dashed;
+.key-wedge.neighbor-subdominant {
+  filter: drop-shadow(0 0 0.3rem #059669) drop-shadow(0 0 0.3rem #059669);
 }
 
-.key-button-minor {
-  width: clamp(1.6rem, 6vw, 2.4rem);
-  height: clamp(1.6rem, 6vw, 2.4rem);
+.wedge-label {
+  position: absolute;
+  left: var(--label-left);
+  top: var(--label-top);
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  color: var(--wedge-ink);
+  text-shadow:
+    0 0 0.2rem rgb(255 255 255 / 70%),
+    0 0 0.35rem rgb(255 255 255 / 70%);
+  font-size: clamp(0.65rem, 2.2vw, 0.95rem);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.key-wedge-minor .wedge-label {
   font-size: clamp(0.6rem, 1.8vw, 0.8rem);
+}
+
+.wedge-numeral {
+  font-size: clamp(0.55rem, 1.6vw, 0.75rem);
+  font-weight: 700;
+  min-height: 1em;
 }
 
 .key-signature-badge {
@@ -166,8 +180,8 @@ a {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 58%;
-  height: 58%;
+  width: 60%;
+  height: 60%;
   transform: translate(-50%, -50%);
   border: 1px solid #ccc;
   border-radius: 50%;
@@ -178,15 +192,16 @@ a {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 42%;
+  width: 36%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.15rem;
   text-align: center;
-  font-size: clamp(0.65rem, 2.2vw, 0.85rem);
+  font-size: clamp(0.6rem, 2vw, 0.8rem);
   color: #444;
+  pointer-events: none;
 }
 
 .circle-center p {
@@ -261,51 +276,48 @@ a {
   width: 0.85rem;
   height: 0.85rem;
   flex-shrink: 0;
-  border: 2px solid #1a1a1a;
   border-radius: 50%;
-  background: #fff;
+  background: #999;
 }
 
 .legend-swatch-selected {
-  border-color: #0b5fff;
-  background: #0b5fff;
+  background: #1a1a1a;
+  box-shadow: 0 0 0.3rem rgb(0 0 0 / 60%);
 }
 
-.legend-swatch-dominant {
-  border-color: #d97706;
-  border-style: dashed;
-}
-
-.legend-swatch-subdominant {
-  border-color: #059669;
-  border-style: dashed;
+.legend-swatch-neighbor {
+  background: linear-gradient(90deg, #d97706 50%, #059669 50%);
+  box-shadow: 0 0 0.3rem #d97706, 0 0 0.3rem #059669;
 }
 
 .key-info {
   width: min(90vw, 32rem);
-  padding: 1rem 1.25rem;
+}
+
+.chord-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.chord-table th,
+.chord-table td {
+  padding: 0.45rem 0.6rem;
   border: 1px solid #ccc;
-  border-radius: 0.5rem;
+  text-align: left;
 }
 
-.key-info p {
-  margin: 0.5rem 0;
+.chord-table tbody tr {
+  cursor: pointer;
 }
 
-.chord-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 0;
-  margin: 0.75rem 0 0;
-  list-style: none;
+.chord-table tbody tr:hover {
+  background: #f2f6ff;
 }
 
-.chord-chip {
-  padding: 0.2rem 0.6rem;
-  border: 1px solid #ccc;
-  border-radius: 999px;
-  font-size: 0.85rem;
+.chord-table tbody tr:focus-visible {
+  outline: 3px solid #0b5fff;
+  outline-offset: -2px;
 }
 
 footer {

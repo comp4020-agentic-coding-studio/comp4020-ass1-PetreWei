@@ -2,9 +2,33 @@
 import Layout from "../layouts/Layout.astro";
 import { KEYS, PIANO_KEYS, getAccidentalBadgeText, getKeyColor } from "../lib/circleOfFifths.ts";
 
-const MAJOR_RADIUS_PERCENT = 38;
-const MINOR_RADIUS_PERCENT = 21;
-const BADGE_RADIUS_PERCENT = 46;
+const MAJOR_LABEL_RADIUS_PERCENT = 38;
+const MINOR_LABEL_RADIUS_PERCENT = 24;
+const BADGE_RADIUS_PERCENT = 47;
+const MAJOR_RING = { inner: 31, outer: 45 };
+const MINOR_RING = { inner: 19, outer: 29 };
+
+function polarPoint(angleDeg: number, radiusPercent: number) {
+  const a = (angleDeg * Math.PI) / 180;
+  return `${50 + radiusPercent * Math.sin(a)}% ${50 - radiusPercent * Math.cos(a)}%`;
+}
+
+// Renders a wedge as a clip-path polygon rather than an SVG path so it can
+// stay a plain <button> (paint and hit-testing both follow clip-path), and
+// as percentages rather than pixels so it stays responsive.
+function wedgePolygon(index: number, innerRadius: number, outerRadius: number, gapDeg = 2) {
+  const step = 360 / KEYS.length;
+  const start = index * step - step / 2 + gapDeg / 2;
+  const end = index * step + step / 2 - gapDeg / 2;
+  const n = 8;
+  const outer = Array.from({ length: n + 1 }, (_, i) =>
+    polarPoint(start + ((end - start) * i) / n, outerRadius),
+  );
+  const inner = Array.from({ length: n + 1 }, (_, i) =>
+    polarPoint(end - ((end - start) * i) / n, innerRadius),
+  );
+  return `polygon(${[...outer, ...inner].join(", ")})`;
+}
 
 function withPosition<T extends { index: number }>(key: T, radiusPercent: number) {
   const angleRad = ((key.index * 360) / KEYS.length) * (Math.PI / 180);
@@ -16,13 +40,15 @@ function withPosition<T extends { index: number }>(key: T, radiusPercent: number
 }
 
 const positionedMajorKeys = KEYS.map((key) => ({
-  ...withPosition(key, MAJOR_RADIUS_PERCENT),
+  ...withPosition(key, MAJOR_LABEL_RADIUS_PERCENT),
   color: getKeyColor(key.index, "major"),
+  clipPath: wedgePolygon(key.index, MAJOR_RING.inner, MAJOR_RING.outer),
 }));
 
 const positionedMinorKeys = KEYS.map((key) => ({
-  ...withPosition(key, MINOR_RADIUS_PERCENT),
+  ...withPosition(key, MINOR_LABEL_RADIUS_PERCENT),
   color: getKeyColor(key.index, "minor"),
+  clipPath: wedgePolygon(key.index, MINOR_RING.inner, MINOR_RING.outer),
 }));
 
 const positionedBadges = KEYS.map((key) => ({
@@ -65,7 +91,7 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
             positionedMajorKeys.map((key) => (
               <button
                 type="button"
-                class="key-button"
+                class="key-wedge"
                 data-key={key.name}
                 data-index={key.index}
                 data-mode="major"
@@ -75,9 +101,12 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                     ? "F sharp major, or G flat major"
                     : `${key.name} major`
                 }
-                style={`--btn-left: ${key.left}%; --btn-top: ${key.top}%; --key-color: ${key.color.css}; --key-text-color: ${key.color.textColor};`}
+                style={`--key-color: ${key.color.css}; clip-path: ${key.clipPath};`}
               >
-                {key.name}
+                <span class="wedge-label" style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}>
+                  <span class="wedge-numeral" data-testid="wedge-numeral" />
+                  <span class="wedge-name">{key.name}</span>
+                </span>
               </button>
             ))
           }
@@ -85,7 +114,7 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
             positionedMinorKeys.map((key) => (
               <button
                 type="button"
-                class="key-button key-button-minor"
+                class="key-wedge key-wedge-minor"
                 data-key={key.relativeMinorName}
                 data-index={key.index}
                 data-mode="minor"
@@ -95,9 +124,12 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                     ? "D sharp minor, or E flat minor"
                     : `${key.relativeMinorName} minor`
                 }
-                style={`--btn-left: ${key.left}%; --btn-top: ${key.top}%; --key-color: ${key.color.css}; --key-text-color: ${key.color.textColor};`}
+                style={`--key-color: ${key.color.css}; clip-path: ${key.clipPath};`}
               >
-                {key.relativeMinorName}
+                <span class="wedge-label" style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}>
+                  <span class="wedge-numeral" data-testid="wedge-numeral" />
+                  <span class="wedge-name">{key.relativeMinorName}</span>
+                </span>
               </button>
             ))
           }
@@ -116,16 +148,20 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
           <div class="circle-center" data-testid="circle-center" aria-live="polite">
             <p data-testid="key-info-placeholder">Pick a key</p>
             <p class="circle-center-name" data-field="name"></p>
-            <p class="circle-center-relative" data-field="relative"></p>
+            <p class="circle-center-colour" data-field="colour"></p>
           </div>
         </div>
         <section class="key-info" data-testid="key-info" aria-live="polite" hidden>
-          <p class="key-info__scale" data-field="scale"></p>
-          <p class="key-info__signature" data-field="signature"></p>
-          <p class="key-info__color" data-field="color-name"></p>
-          <p class="key-info__dominant" data-field="dominant-diff"></p>
-          <p class="key-info__subdominant" data-field="subdominant-diff"></p>
-          <ul class="chord-list" data-testid="chord-list" aria-label="Chords in this key"></ul>
+          <table class="chord-table" data-testid="chord-table">
+            <thead>
+              <tr>
+                <th scope="col">Chord</th>
+                <th scope="col">Function</th>
+                <th scope="col">Root</th>
+              </tr>
+            </thead>
+            <tbody data-testid="chord-table-body"></tbody>
+          </table>
         </section>
         <div class="piano-keyboard-scroll">
           <div class="piano-keyboard" data-testid="piano-keyboard" aria-hidden="true">
@@ -144,19 +180,13 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
         <ul class="legend">
           <li class="legend-item">
             <span class="legend-swatch legend-swatch-selected" aria-hidden="true" />
-            key you picked
+            bigger, glowing wedge = the key you picked
           </li>
           <li class="legend-item">
-            <span class="legend-swatch legend-swatch-dominant" aria-hidden="true" />
-            one step clockwise (the "dominant")
+            <span class="legend-swatch legend-swatch-neighbor" aria-hidden="true" />
+            amber/green glow = one step clockwise/counter-clockwise
           </li>
-          <li class="legend-item">
-            <span class="legend-swatch legend-swatch-subdominant" aria-hidden="true" />
-            one step counter-clockwise (the "subdominant")
-          </li>
-          <li class="legend-item">
-            outer ring = major, inner ring = its relative minor
-          </li>
+          <li class="legend-item">outer ring = major, inner ring = its relative minor</li>
         </ul>
       </div>
     </section>

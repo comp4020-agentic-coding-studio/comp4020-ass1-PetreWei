@@ -15,7 +15,6 @@ export type KeyQuality = "major" | "minor";
 export interface KeyColor {
   readonly hue: number;
   readonly css: string;
-  readonly textColor: string;
   readonly name: string;
 }
 
@@ -60,7 +59,15 @@ export type ChordQuality = "major" | "minor" | "diminished";
 export interface DiatonicChord {
   readonly numeral: string;
   readonly root: string;
+  readonly rootPitchClass: number;
   readonly quality: ChordQuality;
+  readonly functionName: string;
+}
+
+export interface WheelNumeralAssignment {
+  readonly index: number;
+  readonly mode: KeyQuality;
+  readonly numeral: string;
 }
 
 export const MAJOR_SCALE_INTERVALS: readonly number[] = [0, 2, 4, 5, 7, 9, 11];
@@ -141,13 +148,14 @@ export function pitchClassToFrequency(pitchClass: number, octave = 4): number {
 
 export function getTriadPitchClasses(
   tonicPitchClass: number,
-  quality: KeyQuality = "major",
+  quality: ChordQuality = "major",
 ): TriadPitchClasses {
   const thirdInterval = quality === "major" ? 4 : 3;
+  const fifthInterval = quality === "diminished" ? 6 : 7;
   return {
     root: tonicPitchClass,
     third: (tonicPitchClass + thirdInterval) % 12,
-    fifth: (tonicPitchClass + 7) % 12,
+    fifth: (tonicPitchClass + fifthInterval) % 12,
   };
 }
 
@@ -159,12 +167,13 @@ export function getTriadPitchClasses(
 // they can never disagree about what note is actually sounding.
 export function getTriadNotes(
   tonicPitchClass: number,
-  quality: KeyQuality = "major",
+  quality: ChordQuality = "major",
 ): TriadNotes {
   const { root, third, fifth } = getTriadPitchClasses(tonicPitchClass, quality);
   const thirdInterval = quality === "major" ? 4 : 3;
+  const fifthInterval = quality === "diminished" ? 6 : 7;
   const thirdOctave = tonicPitchClass + thirdInterval >= 12 ? 5 : 4;
-  const fifthOctave = tonicPitchClass + 7 >= 12 ? 5 : 4;
+  const fifthOctave = tonicPitchClass + fifthInterval >= 12 ? 5 : 4;
   return {
     root: { pitchClass: root, octave: 4 },
     third: { pitchClass: third, octave: thirdOctave },
@@ -174,7 +183,7 @@ export function getTriadNotes(
 
 export function getTriadFrequencies(
   tonicPitchClass: number,
-  quality: KeyQuality = "major",
+  quality: ChordQuality = "major",
 ): TriadFrequencies {
   const notes = getTriadNotes(tonicPitchClass, quality);
   return {
@@ -242,6 +251,15 @@ const MAJOR_DEGREE_QUALITIES: readonly ChordQuality[] = [
   "minor",
   "diminished",
 ];
+const MAJOR_DEGREE_FUNCTIONS: readonly string[] = [
+  "Tonic",
+  "Supertonic",
+  "Mediant",
+  "Subdominant",
+  "Dominant",
+  "Submediant",
+  "Leading Tone",
+];
 const MINOR_DEGREE_NUMERALS: readonly string[] = ["i", "ii°", "III", "iv", "v", "VI", "VII"];
 const MINOR_DEGREE_QUALITIES: readonly ChordQuality[] = [
   "minor",
@@ -252,17 +270,70 @@ const MINOR_DEGREE_QUALITIES: readonly ChordQuality[] = [
   "major",
   "major",
 ];
+// Natural minor's unraised 7th sits a whole step below the tonic, not a half
+// step, so convention calls it "Subtonic" rather than "Leading Tone".
+const MINOR_DEGREE_FUNCTIONS: readonly string[] = [
+  "Tonic",
+  "Supertonic",
+  "Mediant",
+  "Subdominant",
+  "Dominant",
+  "Submediant",
+  "Subtonic",
+];
+
+function rotateToSixthDegree<T>(items: readonly T[]): T[] {
+  return [...items.slice(5), ...items.slice(0, 5)];
+}
 
 // The 7 diatonic triads of a key, one per scale degree, labeled with the
 // standard roman-numeral convention (uppercase = major, lowercase = minor,
 // lowercase+° = diminished). Reuses the same scale spelling already used for
 // the "7 notes of this key" display, so the chord roots and the scale notes
-// can never disagree.
+// can never disagree; rootPitchClass is rotated the identical way, so the
+// spelled name and the pitch class that plays it can't disagree either.
 export function getDiatonicChords(key: KeyInfo, quality: KeyQuality): DiatonicChord[] {
   const spelling = quality === "major" ? key.scaleSpelling : getRelativeMinorScaleSpelling(key);
+  const pitchClasses = quality === "major"
+    ? getScalePitchClasses(key.tonicPitchClass)
+    : rotateToSixthDegree(getScalePitchClasses(key.tonicPitchClass));
   const numerals = quality === "major" ? MAJOR_DEGREE_NUMERALS : MINOR_DEGREE_NUMERALS;
   const qualities = quality === "major" ? MAJOR_DEGREE_QUALITIES : MINOR_DEGREE_QUALITIES;
-  return spelling.map((root, i) => ({ numeral: numerals[i], root, quality: qualities[i] }));
+  const functions = quality === "major" ? MAJOR_DEGREE_FUNCTIONS : MINOR_DEGREE_FUNCTIONS;
+  return spelling.map((root, i) => ({
+    numeral: numerals[i],
+    root,
+    rootPitchClass: pitchClasses[i],
+    quality: qualities[i],
+    functionName: functions[i],
+  }));
+}
+
+// The 6 non-diminished diatonic chords of any selected key always land on
+// exactly 3 wheel positions (the key itself, its dominant, its subdominant)
+// across both rings — that's the whole reason the circle of fifths works.
+// This maps those positions to the roman numeral they represent relative to
+// the selected key, so the wheel can label only what's actually diatonic.
+export function getWheelNumerals(index: number, quality: KeyQuality): WheelNumeralAssignment[] {
+  const { dominant, subdominant } = getNeighborIndices(index);
+  if (quality === "major") {
+    return [
+      { index, mode: "major", numeral: "I" },
+      { index, mode: "minor", numeral: "vi" },
+      { index: dominant, mode: "major", numeral: "V" },
+      { index: dominant, mode: "minor", numeral: "iii" },
+      { index: subdominant, mode: "major", numeral: "IV" },
+      { index: subdominant, mode: "minor", numeral: "ii" },
+    ];
+  }
+  return [
+    { index, mode: "minor", numeral: "i" },
+    { index, mode: "major", numeral: "III" },
+    { index: dominant, mode: "major", numeral: "VII" },
+    { index: dominant, mode: "minor", numeral: "v" },
+    { index: subdominant, mode: "major", numeral: "VI" },
+    { index: subdominant, mode: "minor", numeral: "iv" },
+  ];
 }
 
 // Mr Mars' colour wheel (see references) assigns each major key a named hue
@@ -276,56 +347,21 @@ export function getKeyColorHue(index: number): number {
   return ((((6 - index) % 12) + 12) % 12) * 30;
 }
 
-
-// Converts an sRGB channel (0-1) to the linear value used by the WCAG
-// relative-luminance formula.
-function toLinearChannel(channel: number): number {
-  return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-}
-
-function hslToRgb(hue: number, saturation: number, lightness: number): [number, number, number] {
-  const c = (1 - Math.abs(2 * lightness - 1)) * saturation;
-  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
-  const m = lightness - c / 2;
-  let r = 0;
-  let g = 0;
-  let b = 0;
-  if (hue < 60) [r, g, b] = [c, x, 0];
-  else if (hue < 120) [r, g, b] = [x, c, 0];
-  else if (hue < 180) [r, g, b] = [0, c, x];
-  else if (hue < 240) [r, g, b] = [0, x, c];
-  else if (hue < 300) [r, g, b] = [x, 0, c];
-  else [r, g, b] = [c, 0, x];
-  return [r + m, g + m, b + m];
-}
-
-// Picks black or white text for a given HSL colour by WCAG relative
-// luminance, so every generated hue (rather than a hand-picked few) stays
-// readable without manual per-key tuning.
-export function getReadableTextColor(
-  hue: number,
-  saturation: number,
-  lightness: number,
-): "#111111" | "#ffffff" {
-  const [r, g, b] = hslToRgb(hue, saturation, lightness);
-  const luminance =
-    0.2126 * toLinearChannel(r) + 0.7152 * toLinearChannel(g) + 0.0722 * toLinearChannel(b);
-  return luminance > 0.42 ? "#111111" : "#ffffff";
-}
-
 // Major keys get a bright, saturated shade of their hue; minor keys get a
 // darker shade of that *same* hue — this is Mr Mars' own stated rule for
 // deriving minor colours ("sadness is darker than happiness"), not a
-// separately-researched value.
+// separately-researched value. Flat majors sit on blue/violet/magenta hues,
+// which read muddier than the sharps' yellow/green hues at the same
+// lightness, so they get an extra lift to stay visually "bright" too.
 export function getKeyColor(index: number, quality: KeyQuality): KeyColor {
   const hue = getKeyColorHue(index);
-  const saturation = quality === "major" ? 0.82 : 0.65;
-  const lightness = quality === "major" ? 0.46 : 0.26;
   const key = KEYS[index];
+  const isBrightFlatMajor = quality === "major" && key.flats > 0;
+  const saturation = quality === "major" ? (isBrightFlatMajor ? 0.75 : 0.82) : 0.65;
+  const lightness = quality === "major" ? (isBrightFlatMajor ? 0.6 : 0.46) : 0.26;
   return {
     hue,
     css: `hsl(${hue}, ${saturation * 100}%, ${lightness * 100}%)`,
-    textColor: getReadableTextColor(hue, saturation, lightness),
     name: quality === "major" ? key.majorColorName : key.minorColorName,
   };
 }

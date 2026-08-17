@@ -1,15 +1,14 @@
 import {
   KEYS,
-  formatKeySignature,
   getDiatonicChords,
+  getKeyColor,
   getNeighborIndices,
-  getRelativeMinorScaleSpelling,
   getRelativeMinorTonicPitchClass,
-  getScaleDifference,
   getTriadNotes,
+  getWheelNumerals,
   pitchClassToFrequency,
 } from "../lib/circleOfFifths.ts";
-import type { KeyQuality, TriadNote } from "../lib/circleOfFifths.ts";
+import type { ChordQuality, KeyQuality, TriadNote } from "../lib/circleOfFifths.ts";
 
 type PlaybackMode = "chord" | "arpeggio";
 
@@ -30,22 +29,17 @@ const pianoKeys = Array.from(
   document.querySelectorAll<HTMLElement>("[data-pitch-class]"),
 );
 
+const wedgeNumerals = Array.from(
+  document.querySelectorAll<HTMLElement>('[data-testid="wedge-numeral"]'),
+);
+
 const fields = {
   name: document.querySelector<HTMLElement>('[data-field="name"]'),
-  relative: document.querySelector<HTMLElement>('[data-field="relative"]'),
-  scale: document.querySelector<HTMLElement>('[data-field="scale"]'),
-  signature: document.querySelector<HTMLElement>('[data-field="signature"]'),
-  colorName: document.querySelector<HTMLElement>('[data-field="color-name"]'),
-  dominantDiff: document.querySelector<HTMLElement>(
-    '[data-field="dominant-diff"]',
-  ),
-  subdominantDiff: document.querySelector<HTMLElement>(
-    '[data-field="subdominant-diff"]',
-  ),
+  colour: document.querySelector<HTMLElement>('[data-field="colour"]'),
 };
 
-const chordList = document.querySelector<HTMLElement>(
-  '[data-testid="chord-list"]',
+const chordTableBody = document.querySelector<HTMLElement>(
+  '[data-testid="chord-table-body"]',
 );
 
 const keyInfoSection = document.querySelector<HTMLElement>(
@@ -120,6 +114,13 @@ function highlightPianoKeys(notes: TriadNote[], mode: PlaybackMode): void {
   });
 }
 
+function playAndHighlight(rootPitchClass: number, quality: ChordQuality): void {
+  const triadNotes = getTriadNotes(rootPitchClass, quality);
+  const notes = [triadNotes.root, triadNotes.third, triadNotes.fifth];
+  highlightPianoKeys(notes, playbackMode);
+  playTriad(notes, playbackMode);
+}
+
 function updateSelection(index: number, quality: KeyQuality): void {
   const key = KEYS[index];
   const { dominant, subdominant } = getNeighborIndices(index);
@@ -139,58 +140,68 @@ function updateSelection(index: number, quality: KeyQuality): void {
     );
   }
 
-  const dominantDiff = getScaleDifference(index, dominant);
-  const subdominantDiff = getScaleDifference(index, subdominant);
+  for (const numeral of wedgeNumerals) {
+    numeral.textContent = "";
+  }
+  for (const assignment of getWheelNumerals(index, quality)) {
+    const numeral = wedgeNumerals.find((el) => {
+      const wedge = el.closest<HTMLButtonElement>("[data-index]");
+      return (
+        Number(wedge?.dataset.index) === assignment.index &&
+        wedge?.dataset.mode === assignment.mode
+      );
+    });
+    if (numeral) numeral.textContent = assignment.numeral;
+  }
 
   const isMinor = quality === "minor";
   const displayName = isMinor ? key.relativeMinorName : key.name;
-  const scaleSpelling = isMinor
-    ? getRelativeMinorScaleSpelling(key)
-    : key.scaleSpelling;
-  const colorName = isMinor ? key.minorColorName : key.majorColorName;
-  const tonicPitchClass = isMinor
-    ? getRelativeMinorTonicPitchClass(key.tonicPitchClass)
-    : key.tonicPitchClass;
+  const colorName = getKeyColor(index, quality).name;
 
   if (placeholder) placeholder.hidden = true;
   if (keyInfoSection) keyInfoSection.hidden = false;
   if (fields.name)
     fields.name.textContent = `${displayName} ${isMinor ? "minor" : "major"}`;
-  if (fields.relative)
-    fields.relative.textContent = isMinor
-      ? `Relative major: ${key.name}`
-      : `Relative minor: ${key.relativeMinorName}`;
-  if (fields.scale)
-    fields.scale.textContent = `The 7 notes of this key: ${scaleSpelling.join(" ")}`;
-  if (fields.signature)
-    fields.signature.textContent =
-      `Key signature (what you'd see on sheet music): ${formatKeySignature(key)}`;
-  if (fields.colorName)
-    fields.colorName.textContent = `Chromesthesia colour (Mr Mars' wheel): ${colorName}`;
-  if (fields.dominantDiff)
-    fields.dominantDiff.textContent =
-      `One step clockwise, ${isMinor ? KEYS[dominant].relativeMinorName : KEYS[dominant].name} ${isMinor ? "minor" : "major"} (the "dominant"): swap ${dominantDiff.noteOnlyInA} for ${dominantDiff.noteOnlyInB}`;
-  if (fields.subdominantDiff)
-    fields.subdominantDiff.textContent =
-      `One step counter-clockwise, ${isMinor ? KEYS[subdominant].relativeMinorName : KEYS[subdominant].name} ${isMinor ? "minor" : "major"} (the "subdominant"): swap ${subdominantDiff.noteOnlyInA} for ${subdominantDiff.noteOnlyInB}`;
+  if (fields.colour) fields.colour.textContent = colorName;
 
-  if (chordList) {
+  if (chordTableBody) {
     const chords = getDiatonicChords(key, quality);
-    chordList.replaceChildren(
+    chordTableBody.replaceChildren(
       ...chords.map((chord) => {
-        const item = document.createElement("li");
-        item.className = "chord-chip";
-        item.textContent = `${chord.numeral} ${chord.root}`;
-        return item;
+        const row = document.createElement("tr");
+        row.tabIndex = 0;
+        row.setAttribute("role", "button");
+        row.setAttribute(
+          "aria-label",
+          `Play ${chord.numeral}, ${chord.functionName}, ${chord.root}`,
+        );
+
+        const numeralCell = document.createElement("td");
+        numeralCell.textContent = chord.numeral;
+        const functionCell = document.createElement("td");
+        functionCell.textContent = chord.functionName;
+        const rootCell = document.createElement("td");
+        rootCell.textContent = chord.root;
+        row.append(numeralCell, functionCell, rootCell);
+
+        const play = () => playAndHighlight(chord.rootPitchClass, chord.quality);
+        row.addEventListener("click", play);
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            play();
+          }
+        });
+
+        return row;
       }),
     );
   }
 
-  const triadNotes = getTriadNotes(tonicPitchClass, quality);
-  const notes = [triadNotes.root, triadNotes.third, triadNotes.fifth];
-  highlightPianoKeys(notes, playbackMode);
-
-  playTriad(notes, playbackMode);
+  const tonicPitchClass = isMinor
+    ? getRelativeMinorTonicPitchClass(key.tonicPitchClass)
+    : key.tonicPitchClass;
+  playAndHighlight(tonicPitchClass, quality);
 }
 
 for (const button of buttons) {

@@ -10,7 +10,6 @@ import {
   getKeyColor,
   getKeyColorHue,
   getNeighborIndices,
-  getReadableTextColor,
   getRelativeMinorScaleSpelling,
   getRelativeMinorTonicPitchClass,
   getScaleDifference,
@@ -18,6 +17,7 @@ import {
   getTriadFrequencies,
   getTriadNotes,
   getTriadPitchClasses,
+  getWheelNumerals,
   pitchClassToFrequency,
 } from "../src/lib/circleOfFifths.ts";
 
@@ -86,6 +86,14 @@ describe("circle of fifths: pure logic", () => {
 
   it("wraps triad pitch classes mod 12 for B major", () => {
     expect(getTriadPitchClasses(11)).toEqual({ root: 11, third: 3, fifth: 6 });
+  });
+
+  it("gives a diminished triad a minor third and a diminished fifth (B°)", () => {
+    expect(getTriadPitchClasses(11, "diminished")).toEqual({
+      root: 11,
+      third: 2,
+      fifth: 5,
+    });
   });
 
   it("lays out 3 chromatic octaves for the on-screen keyboard", () => {
@@ -197,34 +205,63 @@ describe("circle of fifths: pure logic", () => {
     expect(minor.css).not.toBe(major.css);
   });
 
-  it("picks readable text colour by luminance for both light and dark hues", () => {
-    expect(getReadableTextColor(60, 0.9, 0.9)).toBe("#111111");
-    expect(getReadableTextColor(240, 0.7, 0.15)).toBe("#ffffff");
+  it("brightens flat major keys relative to sharp majors at the same lightness rule", () => {
+    const dFlatMajor = KEYS.find((k) => k.name === "D♭")!;
+    const gMajor = KEYS.find((k) => k.name === "G")!;
+    expect(dFlatMajor.flats).toBeGreaterThan(0);
+    expect(gMajor.flats).toBe(0);
+    const flatLightness = Number(getKeyColor(dFlatMajor.index, "major").css.match(/(\d+)%\)$/)![1]);
+    const sharpLightness = Number(getKeyColor(gMajor.index, "major").css.match(/(\d+)%\)$/)![1]);
+    expect(flatLightness).toBeGreaterThan(sharpLightness);
   });
 
-  it("lists C major's 7 diatonic chords with standard roman numerals", () => {
+  it("lists C major's 7 diatonic chords with standard roman numerals and functions", () => {
     const cMajor = KEYS.find((k) => k.name === "C")!;
     expect(getDiatonicChords(cMajor, "major")).toEqual([
-      { numeral: "I", root: "C", quality: "major" },
-      { numeral: "ii", root: "D", quality: "minor" },
-      { numeral: "iii", root: "E", quality: "minor" },
-      { numeral: "IV", root: "F", quality: "major" },
-      { numeral: "V", root: "G", quality: "major" },
-      { numeral: "vi", root: "A", quality: "minor" },
-      { numeral: "vii°", root: "B", quality: "diminished" },
+      { numeral: "I", root: "C", rootPitchClass: 0, quality: "major", functionName: "Tonic" },
+      { numeral: "ii", root: "D", rootPitchClass: 2, quality: "minor", functionName: "Supertonic" },
+      { numeral: "iii", root: "E", rootPitchClass: 4, quality: "minor", functionName: "Mediant" },
+      { numeral: "IV", root: "F", rootPitchClass: 5, quality: "major", functionName: "Subdominant" },
+      { numeral: "V", root: "G", rootPitchClass: 7, quality: "major", functionName: "Dominant" },
+      { numeral: "vi", root: "A", rootPitchClass: 9, quality: "minor", functionName: "Submediant" },
+      { numeral: "vii°", root: "B", rootPitchClass: 11, quality: "diminished", functionName: "Leading Tone" },
     ]);
   });
 
   it("lists A minor's 7 diatonic chords, matching musicca's reference table", () => {
     const cMajor = KEYS.find((k) => k.name === "C")!;
     expect(getDiatonicChords(cMajor, "minor")).toEqual([
-      { numeral: "i", root: "A", quality: "minor" },
-      { numeral: "ii°", root: "B", quality: "diminished" },
-      { numeral: "III", root: "C", quality: "major" },
-      { numeral: "iv", root: "D", quality: "minor" },
-      { numeral: "v", root: "E", quality: "minor" },
-      { numeral: "VI", root: "F", quality: "major" },
-      { numeral: "VII", root: "G", quality: "major" },
+      { numeral: "i", root: "A", rootPitchClass: 9, quality: "minor", functionName: "Tonic" },
+      { numeral: "ii°", root: "B", rootPitchClass: 11, quality: "diminished", functionName: "Supertonic" },
+      { numeral: "III", root: "C", rootPitchClass: 0, quality: "major", functionName: "Mediant" },
+      { numeral: "iv", root: "D", rootPitchClass: 2, quality: "minor", functionName: "Subdominant" },
+      { numeral: "v", root: "E", rootPitchClass: 4, quality: "minor", functionName: "Dominant" },
+      { numeral: "VI", root: "F", rootPitchClass: 5, quality: "major", functionName: "Submediant" },
+      { numeral: "VII", root: "G", rootPitchClass: 7, quality: "major", functionName: "Subtonic" },
+    ]);
+  });
+
+  it("maps C major's 6 non-diminished diatonic chords onto exactly 3 wheel positions", () => {
+    const cIndex = KEYS.findIndex((k) => k.name === "C");
+    expect(getWheelNumerals(cIndex, "major")).toEqual([
+      { index: cIndex, mode: "major", numeral: "I" },
+      { index: cIndex, mode: "minor", numeral: "vi" },
+      { index: 1, mode: "major", numeral: "V" },
+      { index: 1, mode: "minor", numeral: "iii" },
+      { index: 11, mode: "major", numeral: "IV" },
+      { index: 11, mode: "minor", numeral: "ii" },
+    ]);
+  });
+
+  it("maps A minor's 6 non-diminished diatonic chords onto exactly 3 wheel positions", () => {
+    const cIndex = KEYS.findIndex((k) => k.name === "C");
+    expect(getWheelNumerals(cIndex, "minor")).toEqual([
+      { index: cIndex, mode: "minor", numeral: "i" },
+      { index: cIndex, mode: "major", numeral: "III" },
+      { index: 1, mode: "major", numeral: "VII" },
+      { index: 1, mode: "minor", numeral: "v" },
+      { index: 11, mode: "major", numeral: "VI" },
+      { index: 11, mode: "minor", numeral: "iv" },
     ]);
   });
 
@@ -286,7 +323,7 @@ describe("circle of fifths: built page structure (static parse, no script execut
     expect(center).toBeTruthy();
     expect(wrapper!.contains(center)).toBe(true);
     expect(center!.querySelector('[data-field="name"]')).toBeTruthy();
-    expect(center!.querySelector('[data-field="relative"]')).toBeTruthy();
+    expect(center!.querySelector('[data-field="colour"]')).toBeTruthy();
     // Only one key-info section exists — it's no longer duplicated as a
     // separate side-by-side panel outside the circle column.
     expect(doc!.querySelectorAll('[data-testid="key-info"]').length).toBe(1);
@@ -302,10 +339,19 @@ describe("circle of fifths: built page structure (static parse, no script execut
     expect(badges.length).toBe(12);
   });
 
-  it("provides an empty chord-list target for the client script to populate on click", () => {
-    const chordList = doc!.querySelector('[data-testid="chord-list"]');
-    expect(chordList).toBeTruthy();
-    expect(chordList!.children.length).toBe(0);
+  it("provides an empty chord-table body for the client script to populate on click", () => {
+    const tableBody = doc!.querySelector('[data-testid="chord-table-body"]');
+    expect(tableBody).toBeTruthy();
+    expect(tableBody!.children.length).toBe(0);
+    const headers = Array.from(
+      doc!.querySelectorAll('[data-testid="chord-table"] th'),
+    ).map((th) => th.textContent);
+    expect(headers).toEqual(["Chord", "Function", "Root"]);
+  });
+
+  it("renders a roman-numeral slot on every one of the 24 wedges", () => {
+    const numerals = doc!.querySelectorAll('[data-testid="wedge-numeral"]');
+    expect(numerals.length).toBe(24);
   });
 
   it("renders 3 octaves of piano keys matching PIANO_KEYS, each with a pitch class and octave", () => {
