@@ -188,27 +188,8 @@ a {
   pointer-events: none;
 }
 
-.key-wedge[aria-pressed="true"] .wedge-name,
-.key-wedge.neighbor-dominant .wedge-name,
-.key-wedge.neighbor-subdominant .wedge-name {
+.key-wedge[aria-pressed="true"] .wedge-name {
   font-weight: 700;
-  font-size: clamp(0.85rem, 2.9vw, 1.25rem);
-}
-
-.key-wedge[aria-pressed="true"] .wedge-name.wedge-name-enharmonic,
-.key-wedge.neighbor-dominant .wedge-name.wedge-name-enharmonic,
-.key-wedge.neighbor-subdominant .wedge-name.wedge-name-enharmonic {
-  font-size: clamp(0.6rem, 2vw, 0.85rem);
-}
-
-/* The numeral is a sibling of its wedge button, not a descendant (see the
-   markup comment in index.astro), so its emphasised state is driven directly
-   by main.ts toggling these classes on the numeral itself, mirroring the
-   pressed/neighbour classes it toggles on the button. */
-.wedge-numeral-pressed,
-.wedge-numeral-dominant,
-.wedge-numeral-subdominant {
-  font-size: clamp(0.7rem, 2vw, 0.95rem);
 }
 
 .key-signature-badge {

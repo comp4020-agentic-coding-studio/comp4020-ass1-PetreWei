@@ -3,7 +3,6 @@ import {
   getDiatonicChords,
   getHappyBirthdaySequence,
   getKeyColor,
-  getNeighborIndices,
   getRelativeMinorTonicPitchClass,
   getTriadNotes,
   getWheelNumerals,
@@ -244,21 +243,12 @@ function updateSelection(index: number, quality: KeyQuality): void {
   if (happyBirthdayButton) happyBirthdayButton.disabled = false;
 
   const key = KEYS[index];
-  const { dominant, subdominant } = getNeighborIndices(index);
 
   for (const button of buttons) {
     const buttonIndex = Number(button.dataset.index);
     const buttonQuality = button.dataset.mode as KeyQuality;
     const isPressed = buttonIndex === index && buttonQuality === quality;
     button.setAttribute("aria-pressed", String(isPressed));
-    button.classList.toggle(
-      "neighbor-dominant",
-      buttonIndex === dominant && buttonQuality === quality,
-    );
-    button.classList.toggle(
-      "neighbor-subdominant",
-      buttonIndex === subdominant && buttonQuality === quality,
-    );
   }
 
   for (const sector of sectorBorders) {
@@ -266,20 +256,6 @@ function updateSelection(index: number, quality: KeyQuality): void {
   }
 
   for (const numeral of wedgeNumerals) {
-    const numeralIndex = Number(numeral.dataset.index);
-    const numeralMode = numeral.dataset.mode as KeyQuality;
-    numeral.classList.toggle(
-      "wedge-numeral-pressed",
-      numeralIndex === index && numeralMode === quality,
-    );
-    numeral.classList.toggle(
-      "wedge-numeral-dominant",
-      numeralIndex === dominant && numeralMode === quality,
-    );
-    numeral.classList.toggle(
-      "wedge-numeral-subdominant",
-      numeralIndex === subdominant && numeralMode === quality,
-    );
     numeral.textContent = "";
   }
   for (const assignment of getWheelNumerals(index, quality)) {
