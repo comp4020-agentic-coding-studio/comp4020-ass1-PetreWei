@@ -22,6 +22,10 @@ const fields = {
   ),
 };
 
+const placeholder = document.querySelector<HTMLElement>(
+  '[data-testid="key-info-placeholder"]',
+);
+
 let audioContext: AudioContext | null = null;
 
 function getAudioContext(): AudioContext {
@@ -69,17 +73,20 @@ function updateSelection(index: number): void {
   const dominantDiff = getScaleDifference(index, dominant);
   const subdominantDiff = getScaleDifference(index, subdominant);
 
+  if (placeholder) placeholder.hidden = true;
   if (fields.name) fields.name.textContent = `${key.name} major`;
   if (fields.scale)
-    fields.scale.textContent = `Scale: ${key.scaleSpelling.join(" ")}`;
+    fields.scale.textContent =
+      `The 7 notes of this key: ${key.scaleSpelling.join(" ")}`;
   if (fields.signature)
-    fields.signature.textContent = `Key signature: ${formatKeySignature(key)}`;
+    fields.signature.textContent =
+      `Key signature (what you'd see on sheet music): ${formatKeySignature(key)}`;
   if (fields.dominantDiff)
     fields.dominantDiff.textContent =
-      `Dominant (${KEYS[dominant].name}): ${dominantDiff.noteOnlyInA} becomes ${dominantDiff.noteOnlyInB}`;
+      `One step clockwise, ${KEYS[dominant].name} major (the "dominant"): swap ${dominantDiff.noteOnlyInA} for ${dominantDiff.noteOnlyInB}`;
   if (fields.subdominantDiff)
     fields.subdominantDiff.textContent =
-      `Subdominant (${KEYS[subdominant].name}): ${subdominantDiff.noteOnlyInA} becomes ${subdominantDiff.noteOnlyInB}`;
+      `One step counter-clockwise, ${KEYS[subdominant].name} major (the "subdominant"): swap ${subdominantDiff.noteOnlyInA} for ${subdominantDiff.noteOnlyInB}`;
 
   playTriad(key.tonicPitchClass);
 }

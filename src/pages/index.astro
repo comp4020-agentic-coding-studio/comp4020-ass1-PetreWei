@@ -23,37 +23,55 @@ const positionedKeys = KEYS.map((key, i) => {
   <main>
     <h1>Circle of Fifths</h1>
     <p data-testid="intro">
-      Click a key below to hear its major triad. Its two neighbors on the
-      circle — one clockwise, one counter-clockwise — light up too: each is
-      exactly one note different from the key you picked, which is the whole
-      reason this diagram is drawn as a circle.
+      New to music theory? You don't need to know anything to start — click
+      any letter on the circle to hear that key's chord, then watch its two
+      neighbors light up. Each neighbor sounds almost the same, because it's
+      only one note away from the key you picked. That's the entire reason
+      this diagram is drawn as a circle instead of a straight line: every
+      step around it is the smallest possible change.
     </p>
     <section class="circle-layout">
-      <div class="circle-wrapper" role="group" aria-label="Circle of fifths keys">
-        {
-          positionedKeys.map((key) => (
-            <button
-              type="button"
-              class="key-button"
-              data-key={key.name}
-              data-index={key.index}
-              aria-pressed="false"
-              aria-label={
-                key.index === 6
-                  ? "F sharp major, or G flat major"
-                  : `${key.name} major`
-              }
-              style={`--btn-left: ${key.left}%; --btn-top: ${key.top}%;`}
-            >
-              {key.name}
-            </button>
-          ))
-        }
+      <div class="circle-column">
+        <div class="circle-wrapper" role="group" aria-label="Circle of fifths keys">
+          {
+            positionedKeys.map((key) => (
+              <button
+                type="button"
+                class="key-button"
+                data-key={key.name}
+                data-index={key.index}
+                aria-pressed="false"
+                aria-label={
+                  key.index === 6
+                    ? "F sharp major, or G flat major"
+                    : `${key.name} major`
+                }
+                style={`--btn-left: ${key.left}%; --btn-top: ${key.top}%;`}
+              >
+                {key.name}
+              </button>
+            ))
+          }
+        </div>
+        <ul class="legend">
+          <li class="legend-item">
+            <span class="legend-swatch legend-swatch-selected" aria-hidden="true" />
+            key you picked
+          </li>
+          <li class="legend-item">
+            <span class="legend-swatch legend-swatch-dominant" aria-hidden="true" />
+            one step clockwise (the "dominant")
+          </li>
+          <li class="legend-item">
+            <span class="legend-swatch legend-swatch-subdominant" aria-hidden="true" />
+            one step counter-clockwise (the "subdominant")
+          </li>
+        </ul>
       </div>
       <section class="key-info" data-testid="key-info" aria-live="polite">
         <p data-testid="key-info-placeholder">
-          Select a key to see its major scale, key signature, and how it
-          differs from its neighbors.
+          Pick any key above to hear it played and see exactly what changes
+          as you move to its neighbors.
         </p>
         <p class="key-info__name" data-field="name"></p>
         <p class="key-info__scale" data-field="scale"></p>
