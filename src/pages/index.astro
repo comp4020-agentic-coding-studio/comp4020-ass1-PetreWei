@@ -1,20 +1,67 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { KEYS } from "../lib/circleOfFifths.ts";
+
+const RADIUS_PERCENT = 38;
+
+const positionedKeys = KEYS.map((key, i) => {
+  const angleRad = ((i * 360) / KEYS.length) * (Math.PI / 180);
+  return {
+    ...key,
+    left: 50 + RADIUS_PERCENT * Math.sin(angleRad),
+    top: 50 - RADIUS_PERCENT * Math.cos(angleRad),
+  };
+});
 ---
 
-<Layout title="COMP4020 prototype">
+<Layout title="Circle of Fifths">
   <header>
     <nav aria-label="Primary">
       <a href="./">Home</a>
     </nav>
   </header>
   <main>
-    <h1>COMP4020 prototype</h1>
+    <h1>Circle of Fifths</h1>
     <p data-testid="intro">
-      Replace this with your prototype. This week's brief is on the course
-      website; <code>spec/README.md</code> explains how the checks in this repo
-      relate to it.
+      Click a key below to hear its major triad. Its two neighbors on the
+      circle — one clockwise, one counter-clockwise — light up too: each is
+      exactly one note different from the key you picked, which is the whole
+      reason this diagram is drawn as a circle.
     </p>
+    <section class="circle-layout">
+      <div class="circle-wrapper" role="group" aria-label="Circle of fifths keys">
+        {
+          positionedKeys.map((key) => (
+            <button
+              type="button"
+              class="key-button"
+              data-key={key.name}
+              data-index={key.index}
+              aria-pressed="false"
+              aria-label={
+                key.index === 6
+                  ? "F sharp major, or G flat major"
+                  : `${key.name} major`
+              }
+              style={`--btn-left: ${key.left}%; --btn-top: ${key.top}%;`}
+            >
+              {key.name}
+            </button>
+          ))
+        }
+      </div>
+      <section class="key-info" data-testid="key-info" aria-live="polite">
+        <p data-testid="key-info-placeholder">
+          Select a key to see its major scale, key signature, and how it
+          differs from its neighbors.
+        </p>
+        <p class="key-info__name" data-field="name"></p>
+        <p class="key-info__scale" data-field="scale"></p>
+        <p class="key-info__signature" data-field="signature"></p>
+        <p class="key-info__dominant" data-field="dominant-diff"></p>
+        <p class="key-info__subdominant" data-field="subdominant-diff"></p>
+      </section>
+    </section>
   </main>
   <script src="../scripts/main.ts"></script>
 </Layout>

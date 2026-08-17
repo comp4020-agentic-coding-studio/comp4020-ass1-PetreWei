@@ -7,10 +7,95 @@ body {
 }
 
 main {
-  max-width: 40rem;
+  max-width: 64rem;
   margin: 0 auto;
 }
 
 a {
   color: #0b5fff;
+}
+
+.circle-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.circle-wrapper {
+  position: relative;
+  width: min(90vw, 32rem);
+  aspect-ratio: 1 / 1;
+  margin-inline: auto;
+  border: 1px solid #ccc;
+  border-radius: 50%;
+}
+
+.key-button {
+  position: absolute;
+  left: var(--btn-left);
+  top: var(--btn-top);
+  transform: translate(-50%, -50%);
+  width: clamp(2.25rem, 8vw, 3.25rem);
+  height: clamp(2.25rem, 8vw, 3.25rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1a1a1a;
+  border-radius: 50%;
+  background: #fff;
+  font-size: clamp(0.65rem, 2.2vw, 0.95rem);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.key-button:hover {
+  background: #eef3ff;
+}
+
+.key-button:focus-visible {
+  outline: 3px solid #0b5fff;
+  outline-offset: 2px;
+}
+
+.key-button[aria-pressed="true"] {
+  border-color: #0b5fff;
+  background: #0b5fff;
+  color: #fff;
+}
+
+.key-button.neighbor-dominant {
+  border-color: #d97706;
+  border-style: dashed;
+}
+
+.key-button.neighbor-subdominant {
+  border-color: #059669;
+  border-style: dashed;
+}
+
+.key-info {
+  width: min(90vw, 32rem);
+  padding: 1rem 1.25rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+}
+
+.key-info p {
+  margin: 0.5rem 0;
+}
+
+@media (width >= 900px) {
+  .circle-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 3rem;
+  }
+
+  .circle-wrapper,
+  .key-info {
+    width: min(40vw, 32rem);
+  }
 }
