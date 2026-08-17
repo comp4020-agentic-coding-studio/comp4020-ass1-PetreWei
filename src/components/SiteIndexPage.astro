@@ -1,0 +1,106 @@
+---
+import { pageHref } from "../lib/i18n.ts";
+import type { Locale } from "../lib/i18n.ts";
+import { stringsFor } from "../i18n/index.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = stringsFor(locale);
+const base = import.meta.env.BASE_URL;
+
+const entries = t.siteIndex.entries.map((entry) => ({
+  ...entry,
+  label: t.nav[entry.page],
+  href: pageHref(base, locale, entry.page),
+}));
+
+// Source titles and URLs are identical in every locale. Titles because
+// bibliographic convention keeps the title of an English-language work in
+// English (wrapped in lang="en" so a screen reader switches voice, WCAG
+// 3.1.2); URLs because pointing translated pages at localised Wikipedia
+// editions would take the site from 7 distinct external URLs to 23 and
+// re-trigger the rate-limiting that turns CI's link check red.
+const references = [
+  {
+    publisher: "Mr Mars",
+    title: "Musical Colour Wheel",
+    href: "https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
+    note: t.siteIndex.references.mrMars,
+  },
+  {
+    publisher: "Wikipedia",
+    title: "Chromesthesia",
+    href: "https://en.wikipedia.org/wiki/Chromesthesia",
+    note: t.siteIndex.references.chromesthesia,
+  },
+  {
+    publisher: "Wikipedia",
+    title: "Circle of fifths",
+    href: "https://en.wikipedia.org/wiki/Circle_of_fifths",
+    note: t.siteIndex.references.circleOfFifths,
+  },
+  {
+    publisher: "Wikipedia",
+    title: "Roman numeral analysis",
+    href: "https://en.wikipedia.org/wiki/Roman_numeral_analysis",
+    note: t.siteIndex.references.romanNumerals,
+  },
+  {
+    publisher: "Wikipedia",
+    title: "12 equal temperament",
+    href: "https://en.wikipedia.org/wiki/12_equal_temperament",
+    note: t.siteIndex.references.equalTemperament,
+  },
+  {
+    publisher: "Musicca",
+    title: "Circle of Fifths",
+    href: "https://www.musicca.com/circle-of-fifths",
+    note: t.siteIndex.references.musicca,
+  },
+  {
+    publisher: "Chromatone",
+    title: "Circle of Fifths",
+    href: "https://fifths.chromatone.center/",
+    note: t.siteIndex.references.chromatone,
+  },
+];
+---
+
+<main>
+  <h1>{t.siteIndex.h1}</h1>
+  <p>{t.siteIndex.intro}</p>
+
+  <ul class="site-index-list">
+    {
+      entries.map((entry) => (
+        <li class="site-index-entry">
+          <h2><a href={entry.href}>{entry.label}</a></h2>
+          <p>{entry.summary}</p>
+          <p class="site-index-topics">{entry.topics.join(" · ")}</p>
+        </li>
+      ))
+    }
+  </ul>
+
+  {/* Every source for the whole site, gathered here rather than repeated in a
+  footer on all five pages. Kept deliberately short: CI's link check crawls
+  each distinct external URL once per run, and a burst of them gets
+  rate-limited from a shared runner IP — so name concepts in the prose and
+  cite them here, rather than linking inline as well. */}
+  <section class="theory-section references-section">
+    <h2>{t.siteIndex.referencesHeading}</h2>
+    <ul class="references">
+      {
+        references.map((reference) => (
+          <li>
+            {reference.publisher}, <a href={reference.href} lang="en">"{reference.title}"</a>
+            {" "}{reference.note}
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</main>

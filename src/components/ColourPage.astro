@@ -1,0 +1,76 @@
+---
+import { KEYS, getKeyColor } from "../lib/circleOfFifths.ts";
+import type { Locale } from "../lib/i18n.ts";
+import { stringsFor } from "../i18n/index.ts";
+import { translateColorName } from "../i18n/runtime.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = stringsFor(locale);
+
+const MR_MARS_URL =
+  "https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm";
+
+// Note names stay letters in every locale (a deliberate choice), so only the
+// "major"/"minor" word and the colour name are localised here.
+const majorSwatches = KEYS.map((key) => ({
+  label: t.runtime.keyName(key.name, "major"),
+  colorName: translateColorName(key.majorColorName, locale),
+  css: getKeyColor(key.index, "major").css,
+}));
+
+const minorSwatches = KEYS.map((key) => ({
+  label: t.runtime.keyName(key.relativeMinorName, "minor"),
+  colorName: translateColorName(key.minorColorName, locale),
+  css: getKeyColor(key.index, "minor").css,
+}));
+
+const designed = t.colour.designed.replace(
+  "{link}",
+  `<a href="${MR_MARS_URL}">Musical Colour Wheel</a>`,
+);
+---
+
+<main>
+  <h1>{t.colour.h1}</h1>
+
+  <section class="theory-section">
+    <h2>{t.colour.chromesthesiaHeading}</h2>
+    <p set:html={t.colour.chromesthesia} />
+  </section>
+
+  <section class="theory-section">
+    <h2>{t.colour.designedHeading}</h2>
+    <p set:html={designed} />
+    <p set:html={t.colour.approximation} />
+  </section>
+
+  <section class="theory-section">
+    <h2>{t.colour.swatchesHeading}</h2>
+    <p>{t.colour.majorsIntro}</p>
+    <ul class="color-key-list">
+      {
+        majorSwatches.map((swatch) => (
+          <li class="color-key-item" style={`background: color-mix(in srgb, ${swatch.css} 18%, white);`}>
+            <span class="color-key-swatch" style={`background: ${swatch.css};`} />
+            {swatch.label}: {swatch.colorName}
+          </li>
+        ))
+      }
+    </ul>
+    <p>{t.colour.minorsIntro}</p>
+    <ul class="color-key-list">
+      {
+        minorSwatches.map((swatch) => (
+          <li class="color-key-item" style={`background: color-mix(in srgb, ${swatch.css} 18%, white);`}>
+            <span class="color-key-swatch" style={`background: ${swatch.css};`} />
+            {swatch.label}: {swatch.colorName}
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</main>

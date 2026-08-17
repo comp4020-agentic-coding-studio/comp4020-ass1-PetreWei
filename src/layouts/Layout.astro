@@ -1,60 +1,48 @@
 ---
 import "../styles/global.css";
+import { HTML_LANG, PAGE_ORDER, pageHref } from "../lib/i18n.ts";
+import type { Locale, PageKey } from "../lib/i18n.ts";
+import { stringsFor } from "../i18n/index.ts";
 
 interface Props {
-  title: string;
+  locale: Locale;
+  page: PageKey;
 }
 
-const { title } = Astro.props;
+// Which page this is arrives as an explicit prop rather than being sniffed out
+// of Astro.url.pathname. The old version compared filename suffixes and
+// derived Home as "not the theory page", which silently marked Home current on
+// anything it didn't recognise — and with locale prefixes there would have been
+// many more such paths.
+const { locale, page } = Astro.props;
+const t = stringsFor(locale);
 
-const base = import.meta.env.BASE_URL.endsWith("/")
-  ? import.meta.env.BASE_URL
-  : `${import.meta.env.BASE_URL}/`;
+const base = import.meta.env.BASE_URL;
 
-// Every page in the site, in header order. Home is the empty filename (the
-// base URL itself); the Index tab sits last, as a table of contents.
-const PAGES = [
-  { label: "Home", file: "" },
-  { label: "Circle", file: "circle.html" },
-  { label: "Chords", file: "chords.html" },
-  { label: "Colour", file: "colour.html" },
-  { label: "Index", file: "site-index.html" },
-] as const;
-
-// Matched on the emitted filename rather than the whole path, because the
-// deployed pathname carries the repo's base prefix. Exactly one tab must come
-// back true — a spec test asserts that, since marking two would silently look
-// like the first one being current.
-function isCurrent(file: string): boolean {
-  const path = Astro.url.pathname;
-  if (file === "") {
-    return (
-      path === "/" ||
-      path.endsWith("/index.html") ||
-      path === base ||
-      path === base.replace(/\/$/, "")
-    );
-  }
-  return path.endsWith(`/${file}`);
-}
-
-const tabs = PAGES.map((page) => ({
-  label: page.label,
-  href: `${base}${page.file}`,
-  current: isCurrent(page.file),
+const tabs = PAGE_ORDER.map((key) => ({
+  label: t.nav[key],
+  href: pageHref(base, locale, key),
+  current: key === page,
 }));
+
+// No hreflang/canonical here, deliberately. CI's link check crawls
+// link[href], and absolute alternates would point at pages that do not exist
+// yet on the live site — check runs before deploy, so they could never pass on
+// the push that introduces them. Relative alternates would pass CI but are
+// ignored by search engines, so they would be decorative markup. Omitted
+// rather than faked.
 ---
 
 <!doctype html>
-<html lang="en-AU">
+<html lang={HTML_LANG[locale]}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{title}</title>
+    <title>{t.titles[page]}</title>
   </head>
   <body>
     <header>
-      <nav class="tabs" aria-label="Primary">
+      <nav class="tabs" aria-label={t.nav.primaryLabel}>
         {
           tabs.map((tab) => (
             <a class="tab" href={tab.href} aria-current={tab.current ? "page" : undefined}>

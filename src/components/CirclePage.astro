@@ -1,0 +1,48 @@
+---
+import { pageHref } from "../lib/i18n.ts";
+import type { Locale } from "../lib/i18n.ts";
+import { stringsFor } from "../i18n/index.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = stringsFor(locale);
+const base = import.meta.env.BASE_URL;
+
+// Prose is stored as HTML strings and rendered with set:html because
+// <strong>/<a> sit mid-sentence and move position under translation; splitting
+// them into leaf-text keys would wreck the translation. Build-time constant
+// content, never user input.
+const outlineLink = t.circle.outlineLink.replace(
+  "{link}",
+  `<a href="${pageHref(base, locale, "chords")}">${t.nav.chords}</a>`,
+);
+---
+
+<main>
+  <h1>{t.circle.h1}</h1>
+
+  <section class="theory-section">
+    <h2>{t.circle.fifthsHeading}</h2>
+    <p set:html={t.circle.fifths} />
+  </section>
+
+  <section class="theory-section">
+    <h2>{t.circle.signaturesHeading}</h2>
+    <p set:html={t.circle.signatures} />
+    <p set:html={t.circle.badges} />
+  </section>
+
+  <section class="theory-section">
+    <h2>{t.circle.minorsHeading}</h2>
+    <p set:html={t.circle.minors} />
+  </section>
+
+  <section class="theory-section">
+    <h2>{t.circle.outlineHeading}</h2>
+    <p set:html={t.circle.outline} />
+    <p set:html={outlineLink} />
+  </section>
+</main>

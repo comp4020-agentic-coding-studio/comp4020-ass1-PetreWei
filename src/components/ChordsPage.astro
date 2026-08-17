@@ -1,0 +1,82 @@
+---
+import { KEYS, getDiatonicChords } from "../lib/circleOfFifths.ts";
+import { pageHref } from "../lib/i18n.ts";
+import type { Locale } from "../lib/i18n.ts";
+import { stringsFor } from "../i18n/index.ts";
+import { translateFunctionName, translateQuality } from "../i18n/runtime.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = stringsFor(locale);
+const base = import.meta.env.BASE_URL;
+
+// Built from the same function the home page's live table uses, so this
+// worked example can never drift out of step with what the app shows.
+const cMajorChords = getDiatonicChords(KEYS[0], "major");
+
+const colourLink = t.chords.colourLink.replace(
+  "{link}",
+  `<a href="${pageHref(base, locale, "colour")}">${t.nav.colour}</a>`,
+);
+---
+
+<main>
+  <h1>{t.chords.h1}</h1>
+
+  <section class="theory-section">
+    <h2>{t.chords.triadHeading}</h2>
+    <p set:html={t.chords.triadIntro} />
+    <ul>
+      <li set:html={t.chords.majorRecipe} />
+      <li set:html={t.chords.minorRecipe} />
+      <li set:html={t.chords.diminishedRecipe} />
+    </ul>
+    <p set:html={t.chords.triadOutro} />
+  </section>
+
+  <section class="theory-section">
+    <h2>{t.chords.sevenHeading}</h2>
+    <p set:html={t.chords.sevenIntro} />
+    <table class="chord-table">
+      <caption>{t.chords.tableCaption}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{t.runtime.chordTableHeaders[0]}</th>
+          <th scope="col">{t.runtime.chordTableHeaders[1]}</th>
+          <th scope="col">{t.runtime.chordTableHeaders[2]}</th>
+          <th scope="col">{t.chords.qualityHeader}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          cMajorChords.map((chord) => (
+            <tr>
+              <td>{chord.numeral}</td>
+              <td>{translateFunctionName(chord.functionName, locale)}</td>
+              <td>{chord.root}</td>
+              <td>{translateQuality(chord.quality, locale)}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+    <p set:html={t.chords.sevenOutro} />
+  </section>
+
+  <section class="theory-section">
+    <h2>{t.chords.slicesHeading}</h2>
+    <p set:html={t.chords.slices} />
+    <p set:html={t.chords.slicesSeventh} />
+  </section>
+
+  <section class="theory-section">
+    <h2>{t.chords.hearingHeading}</h2>
+    <p set:html={t.chords.octaveNumbers} />
+    <p set:html={t.chords.tuning} />
+    <p set:html={t.chords.playback} />
+    <p set:html={colourLink} />
+  </section>
+</main>
