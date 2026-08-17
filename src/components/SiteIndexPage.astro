@@ -25,13 +25,18 @@ const entries = t.siteIndex.entries.map((entry) => ({
 // attribution and the URL a reader can copy, with nothing for a crawler to
 // follow. `url` is deliberately a plain string, not an href.
 //
+// This is also why each `url` can now be the canonical source. The Mr Mars
+// citation previously had to point at an Internet Archive snapshot purely
+// because that host 403s crawlers; as text it is never fetched, so the real
+// URL is cited instead.
+//
 // Titles stay English in every locale by bibliographic convention (wrapped in
 // lang="en" so a screen reader switches voice — WCAG 3.1.2, Language of Parts).
 const references = [
   {
     publisher: "Mr Mars",
     title: "Musical Colour Wheel",
-    url: "https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
+    url: "https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
     note: t.siteIndex.references.mrMars,
   },
   {

@@ -165,7 +165,7 @@ export const en: Strings = {
     ],
     references: {
       mrMars:
-        "(archived) — the 24-key colour scheme this site borrows for its highlights. Cited via the Internet Archive: the original host refuses automated requests, and a snapshot can't rot.",
+        "— the 24-key colour scheme this site borrows for its highlights.",
       chromesthesia: "— background on the real sound-to-colour phenomenon.",
       circleOfFifths: "— background on the music theory this diagram is built from.",
       romanNumerals:

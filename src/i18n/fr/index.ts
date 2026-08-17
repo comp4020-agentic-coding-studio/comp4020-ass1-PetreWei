@@ -167,7 +167,7 @@ export const fr: Strings = {
     ],
     references: {
       mrMars:
-        "(archivé) — le schéma de 24 couleurs que ce site emprunte pour ses surbrillances. Cité via Internet Archive : l'hôte d'origine refuse les requêtes automatisées, et un instantané ne peut pas se périmer.",
+        "— le schéma de 24 couleurs que ce site emprunte pour ses surbrillances.",
       chromesthesia: "— contexte sur le phénomène réel du son vers la couleur.",
       circleOfFifths: "— contexte sur la théorie musicale dont ce diagramme est issu.",
       romanNumerals:

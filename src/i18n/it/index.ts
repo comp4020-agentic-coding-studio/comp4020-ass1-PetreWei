@@ -167,7 +167,7 @@ export const it: Strings = {
     ],
     references: {
       mrMars:
-        "(archiviato) — lo schema di 24 colori che questo sito prende in prestito per le sue evidenziazioni. Citato tramite Internet Archive: l'host originale rifiuta le richieste automatizzate, e un'istantanea non può decadere.",
+        "— lo schema di 24 colori che questo sito prende in prestito per le sue evidenziazioni.",
       chromesthesia: "— contesto sul fenomeno reale dal suono al colore.",
       circleOfFifths: "— contesto sulla teoria musicale da cui nasce questo diagramma.",
       romanNumerals:

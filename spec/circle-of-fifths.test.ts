@@ -802,15 +802,6 @@ describe("the built site as a whole", () => {
     }
   });
 
-  it("keeps the bot-blocked host out of every page", () => {
-    for (const { name, doc } of pages) {
-      expect(
-        hrefs(doc).filter((href) => href.startsWith("https://warrenmars.com/")),
-        `${name} still links the un-archived host`,
-      ).toEqual([]);
-    }
-  });
-
   // CI's link check crawls every external URL it can find, on every run.
   // Third-party hosts turned it red twice — a 403 from bot protection and a
   // 429 from rate limiting — neither of which said anything true about this
@@ -861,10 +852,11 @@ describe.each(LOCALES)("references — %s", (locale) => {
 
   it("credits Mr Mars, whose colour scheme the whole site borrows", () => {
     // Attribution is the one citation that is not optional: every colour on
-    // the wheel comes from this source. Cited via the Internet Archive because
-    // the original host refuses automated requests and a snapshot cannot rot.
+    // the wheel comes from this source. Cited at its canonical URL — safe now
+    // that citations are text, since that host 403s crawlers but is never
+    // fetched.
     expect(citedUrls()).toContain(
-      "https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
+      "https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
     );
     expect(doc!.body.textContent).toContain("Mr Mars");
   });
