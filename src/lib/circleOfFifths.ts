@@ -18,6 +18,19 @@ export interface TriadFrequencies {
   fifth: number;
 }
 
+export interface TriadPitchClasses {
+  root: number;
+  third: number;
+  fifth: number;
+}
+
+export interface PianoKeyInfo {
+  readonly pitchClass: number;
+  readonly label: string;
+  readonly isBlack: boolean;
+  readonly whiteIndex: number;
+}
+
 export const MAJOR_SCALE_INTERVALS: readonly number[] = [0, 2, 4, 5, 7, 9, 11];
 
 // Standard major-key data: 12 keys in circle-of-fifths order, clockwise from
@@ -77,15 +90,42 @@ export function pitchClassToFrequency(pitchClass: number, octave = 4): number {
   return 440 * 2 ** (semitoneFromA4 / 12);
 }
 
+export function getTriadPitchClasses(tonicPitchClass: number): TriadPitchClasses {
+  return {
+    root: tonicPitchClass,
+    third: (tonicPitchClass + 4) % 12,
+    fifth: (tonicPitchClass + 7) % 12,
+  };
+}
+
 export function getTriadFrequencies(tonicPitchClass: number): TriadFrequencies {
+  const { root, third, fifth } = getTriadPitchClasses(tonicPitchClass);
   const thirdOctave = tonicPitchClass + 4 >= 12 ? 5 : 4;
   const fifthOctave = tonicPitchClass + 7 >= 12 ? 5 : 4;
   return {
-    root: pitchClassToFrequency(tonicPitchClass, 4),
-    third: pitchClassToFrequency((tonicPitchClass + 4) % 12, thirdOctave),
-    fifth: pitchClassToFrequency((tonicPitchClass + 7) % 12, fifthOctave),
+    root: pitchClassToFrequency(root, 4),
+    third: pitchClassToFrequency(third, thirdOctave),
+    fifth: pitchClassToFrequency(fifth, fifthOctave),
   };
 }
+
+// One chromatic octave for the on-screen keyboard. whiteIndex doubles as the
+// horizontal layout coordinate: 0-6 for white keys, x.5 for the black key
+// sitting on the boundary right after white key x.
+export const PIANO_KEYS: readonly PianoKeyInfo[] = [
+  { pitchClass: 0, label: "C", isBlack: false, whiteIndex: 0 },
+  { pitchClass: 1, label: "C♯", isBlack: true, whiteIndex: 0.5 },
+  { pitchClass: 2, label: "D", isBlack: false, whiteIndex: 1 },
+  { pitchClass: 3, label: "D♯", isBlack: true, whiteIndex: 1.5 },
+  { pitchClass: 4, label: "E", isBlack: false, whiteIndex: 2 },
+  { pitchClass: 5, label: "F", isBlack: false, whiteIndex: 3 },
+  { pitchClass: 6, label: "F♯", isBlack: true, whiteIndex: 3.5 },
+  { pitchClass: 7, label: "G", isBlack: false, whiteIndex: 4 },
+  { pitchClass: 8, label: "G♯", isBlack: true, whiteIndex: 4.5 },
+  { pitchClass: 9, label: "A", isBlack: false, whiteIndex: 5 },
+  { pitchClass: 10, label: "A♯", isBlack: true, whiteIndex: 5.5 },
+  { pitchClass: 11, label: "B", isBlack: false, whiteIndex: 6 },
+];
 
 export function formatKeySignature(key: KeyInfo): string {
   if (key.sharps > 0) return key.sharps === 1 ? "1 sharp" : `${key.sharps} sharps`;

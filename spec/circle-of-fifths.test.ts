@@ -4,10 +4,12 @@ import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import {
   KEYS,
+  PIANO_KEYS,
   getNeighborIndices,
   getScaleDifference,
   getScalePitchClasses,
   getTriadFrequencies,
+  getTriadPitchClasses,
 } from "../src/lib/circleOfFifths.ts";
 
 describe("circle of fifths: pure logic", () => {
@@ -68,6 +70,23 @@ describe("circle of fifths: pure logic", () => {
     expect(KEYS.map((k) => k.sharps)).toEqual([0, 1, 2, 3, 4, 5, 6, 0, 0, 0, 0, 0]);
     expect(KEYS.map((k) => k.flats)).toEqual([0, 0, 0, 0, 0, 0, 0, 5, 4, 3, 2, 1]);
   });
+
+  it("computes triad pitch classes for C major", () => {
+    expect(getTriadPitchClasses(0)).toEqual({ root: 0, third: 4, fifth: 7 });
+  });
+
+  it("wraps triad pitch classes mod 12 for B major", () => {
+    expect(getTriadPitchClasses(11)).toEqual({ root: 11, third: 3, fifth: 6 });
+  });
+
+  it("lays out exactly one chromatic octave for the on-screen keyboard", () => {
+    expect(PIANO_KEYS.map((k) => k.pitchClass)).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+    ]);
+    expect(PIANO_KEYS.filter((k) => k.isBlack).map((k) => k.pitchClass)).toEqual([
+      1, 3, 6, 8, 10,
+    ]);
+  });
 });
 
 describe("circle of fifths: built page structure (static parse, no script execution)", () => {
@@ -103,5 +122,16 @@ describe("circle of fifths: built page structure (static parse, no script execut
 
   it("provides an info panel target for the client script to update", () => {
     expect(doc!.querySelector('[data-testid="key-info"]')).toBeTruthy();
+  });
+
+  it("renders exactly one chromatic octave of piano keys matching PIANO_KEYS", () => {
+    const pianoKeys = Array.from(doc!.querySelectorAll("[data-pitch-class]"));
+    expect(pianoKeys.length).toBe(12);
+    expect(pianoKeys.map((k) => k.getAttribute("data-pitch-class"))).toEqual(
+      PIANO_KEYS.map((k) => String(k.pitchClass)),
+    );
+    expect(
+      pianoKeys.filter((k) => k.classList.contains("piano-key-black")).length,
+    ).toBe(5);
   });
 });

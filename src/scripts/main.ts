@@ -4,10 +4,18 @@ import {
   getNeighborIndices,
   getScaleDifference,
   getTriadFrequencies,
+  getTriadPitchClasses,
 } from "../lib/circleOfFifths.ts";
+
+const ARPEGGIO_STEP_SECONDS = 0.18;
+const NOTE_DURATION_SECONDS = 1.1;
 
 const buttons = Array.from(
   document.querySelectorAll<HTMLButtonElement>("[data-key]"),
+);
+
+const pianoKeys = Array.from(
+  document.querySelectorAll<HTMLElement>("[data-pitch-class]"),
 );
 
 const fields = {
@@ -37,23 +45,52 @@ function playTriad(tonicPitchClass: number): void {
   const context = getAudioContext();
   const { root, third, fifth } = getTriadFrequencies(tonicPitchClass);
   const now = context.currentTime;
-  const duration = 0.8;
 
-  for (const frequency of [root, third, fifth]) {
+  [root, third, fifth].forEach((frequency, i) => {
+    const startTime = now + i * ARPEGGIO_STEP_SECONDS;
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     oscillator.type = "sine";
     oscillator.frequency.value = frequency;
 
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.12, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.12, startTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      startTime + NOTE_DURATION_SECONDS,
+    );
 
     oscillator.connect(gain);
     gain.connect(context.destination);
-    oscillator.start(now);
-    oscillator.stop(now + duration + 0.02);
+    oscillator.start(startTime);
+    oscillator.stop(startTime + NOTE_DURATION_SECONDS + 0.02);
+  });
+}
+
+let pendingHighlightTimeouts: ReturnType<typeof setTimeout>[] = [];
+
+function highlightPianoKeys(pitchClasses: number[]): void {
+  for (const timeoutId of pendingHighlightTimeouts) {
+    clearTimeout(timeoutId);
   }
+  pendingHighlightTimeouts = [];
+
+  for (const pianoKey of pianoKeys) {
+    pianoKey.classList.remove("piano-key-active");
+  }
+
+  pitchClasses.forEach((pitchClass, i) => {
+    const timeoutId = setTimeout(
+      () => {
+        const pianoKey = pianoKeys.find(
+          (key) => Number(key.dataset.pitchClass) === pitchClass,
+        );
+        pianoKey?.classList.add("piano-key-active");
+      },
+      i * ARPEGGIO_STEP_SECONDS * 1000,
+    );
+    pendingHighlightTimeouts.push(timeoutId);
+  });
 }
 
 function updateSelection(index: number): void {
@@ -87,6 +124,13 @@ function updateSelection(index: number): void {
   if (fields.subdominantDiff)
     fields.subdominantDiff.textContent =
       `One step counter-clockwise, ${KEYS[subdominant].name} major (the "subdominant"): swap ${subdominantDiff.noteOnlyInA} for ${subdominantDiff.noteOnlyInB}`;
+
+  const triadPitchClasses = getTriadPitchClasses(key.tonicPitchClass);
+  highlightPianoKeys([
+    triadPitchClasses.root,
+    triadPitchClasses.third,
+    triadPitchClasses.fifth,
+  ]);
 
   playTriad(key.tonicPitchClass);
 }

@@ -1,6 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { KEYS } from "../lib/circleOfFifths.ts";
+import { KEYS, PIANO_KEYS } from "../lib/circleOfFifths.ts";
 
 const RADIUS_PERCENT = 38;
 
@@ -50,6 +50,17 @@ const positionedKeys = KEYS.map((key, i) => {
               >
                 {key.name}
               </button>
+            ))
+          }
+        </div>
+        <div class="piano-keyboard" data-testid="piano-keyboard" aria-hidden="true">
+          {
+            PIANO_KEYS.map((key) => (
+              <div
+                class={`piano-key ${key.isBlack ? "piano-key-black" : "piano-key-white"}`}
+                data-pitch-class={key.pitchClass}
+                style={`--key-left: ${(key.whiteIndex / 7) * 100}%;`}
+              />
             ))
           }
         </div>

@@ -82,6 +82,41 @@ a {
   border-style: dashed;
 }
 
+.piano-keyboard {
+  position: relative;
+  width: min(90vw, 32rem);
+  height: 6rem;
+}
+
+.piano-key {
+  position: absolute;
+  left: var(--key-left);
+  border: 1px solid #1a1a1a;
+  border-radius: 0 0 0.2rem 0.2rem;
+}
+
+.piano-key-white {
+  top: 0;
+  width: calc(100% / 7);
+  height: 100%;
+  background: #fff;
+  z-index: 1;
+}
+
+.piano-key-black {
+  top: 0;
+  width: calc(100% / 7 * 0.6);
+  height: 60%;
+  background: #1a1a1a;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.piano-key.piano-key-active {
+  background: #0b5fff;
+  border-color: #0b5fff;
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;
