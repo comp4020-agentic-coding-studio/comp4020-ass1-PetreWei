@@ -1,4 +1,5 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { HTML_LANG, LOCALES, PAGE_ORDER, pageHref } from "../src/lib/i18n.ts";
 import { STRINGS } from "../src/i18n/index.ts";
@@ -726,6 +727,19 @@ describe.each(localePagePairs)("$locale/$page (static parse)", ({ locale, page }
     expect(doc!.querySelectorAll("script").length).toBe(0);
   });
 
+  it("keeps any wide table inside a scroll box, so the page never scrolls sideways", () => {
+    // JSDOM cannot measure width, so this asserts the structure that makes
+    // overflow impossible rather than the absence of overflow. It exists
+    // because the Chords table DID push the Spanish and Italian pages
+    // sideways at 390px: their degree names are much longer than English's.
+    for (const table of Array.from(doc!.querySelectorAll("table"))) {
+      expect(
+        table.closest(".chord-table-scroll"),
+        `a table on ${file} is not inside a scroll container`,
+      ).toBeTruthy();
+    }
+  });
+
   it("keeps every prose section's inline markup intact under translation", () => {
     // Prose is stored as HTML strings, which astro check cannot look inside.
     // Comparing the tag multiset against English catches a translation that
@@ -815,6 +829,25 @@ describe("the built site as a whole", () => {
         .filter((href) => /^(https?:)?\/\//.test(href));
       expect(external, `${name} still links off-site`).toEqual([]);
     }
+  });
+
+  it("ships the mobile rules that keep the five tabs on one line", () => {
+    // JSDOM has no layout engine, so a test cannot measure that the tabs
+    // occupy one row — that is verified in a real browser at 320/360/390px
+    // across all five locales. What this CAN do is fail if the breakpoints are
+    // deleted or the selectors renamed, which is how the compaction would
+    // realistically get lost.
+    const css = readdirSync(resolve(DIST, "_astro"))
+      .filter((name) => name.endsWith(".css"))
+      .map((name) => readFileSync(resolve(DIST, "_astro", name), "utf8"))
+      .join("\n");
+    expect(css, "no phone breakpoint").toMatch(/width\s*<=\s*480px|max-width:\s*480px/);
+    expect(css, "no small-phone breakpoint").toMatch(/width\s*<=\s*340px|max-width:\s*340px/);
+    // The compaction works by shrinking the tab font and its horizontal
+    // padding; if .tab stops being styled inside a breakpoint, it regressed.
+    const mobileBlocks = css.match(/@media[^{]*(?:480px|340px)[^{]*\{(?:[^{}]|\{[^{}]*\})*\}/g) ?? [];
+    expect(mobileBlocks.length).toBeGreaterThanOrEqual(2);
+    expect(mobileBlocks.join("\n")).toContain(".tab");
   });
 
   it("links only to pages this site actually builds", () => {

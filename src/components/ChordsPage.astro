@@ -40,29 +40,36 @@ const colourLink = t.chords.colourLink.replace(
   <section class="theory-section">
     <h2>{t.chords.sevenHeading}</h2>
     <p set:html={t.chords.sevenIntro} />
-    <table class="chord-table">
-      <caption>{t.chords.tableCaption}</caption>
-      <thead>
-        <tr>
-          <th scope="col">{t.runtime.chordTableHeaders[0]}</th>
-          <th scope="col">{t.runtime.chordTableHeaders[1]}</th>
-          <th scope="col">{t.runtime.chordTableHeaders[2]}</th>
-          <th scope="col">{t.chords.qualityHeader}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {
-          cMajorChords.map((chord) => (
-            <tr>
-              <td>{chord.numeral}</td>
-              <td>{translateFunctionName(chord.functionName, locale)}</td>
-              <td>{chord.root}</td>
-              <td>{translateQuality(chord.quality, locale)}</td>
-            </tr>
-          ))
-        }
-      </tbody>
-    </table>
+    {/* Scrolls inside its own box rather than pushing the page sideways. The
+    four columns fit English and Chinese comfortably, but the Romance
+    languages' degree names are much longer ("Sottodominante",
+    "Submediante") and overflowed a 390px viewport. Same pattern as
+    .piano-keyboard-scroll. */}
+    <div class="chord-table-scroll">
+      <table class="chord-table">
+        <caption>{t.chords.tableCaption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{t.runtime.chordTableHeaders[0]}</th>
+            <th scope="col">{t.runtime.chordTableHeaders[1]}</th>
+            <th scope="col">{t.runtime.chordTableHeaders[2]}</th>
+            <th scope="col">{t.chords.qualityHeader}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            cMajorChords.map((chord) => (
+              <tr>
+                <td>{chord.numeral}</td>
+                <td>{translateFunctionName(chord.functionName, locale)}</td>
+                <td>{chord.root}</td>
+                <td>{translateQuality(chord.quality, locale)}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
     <p set:html={t.chords.sevenOutro} />
   </section>
 

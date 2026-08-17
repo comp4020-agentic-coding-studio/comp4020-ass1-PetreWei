@@ -413,6 +413,20 @@ a {
   text-align: left;
 }
 
+/* The Chords page's four-column example table. Romance-language degree names
+   ("Sottodominante", "Submediante") make it wider than a 390px phone, so it
+   scrolls in its own box instead of giving the whole page a horizontal
+   scrollbar. min-width keeps the columns from collapsing into unreadable
+   slivers when it does scroll. */
+.chord-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.chord-table-scroll .chord-table {
+  min-width: 22rem;
+}
+
 .chord-table caption {
   padding-bottom: 0.4rem;
   text-align: left;
@@ -534,5 +548,61 @@ a {
 @media (width >= 900px) {
   .circle-column {
     width: min(40vw, 32rem);
+  }
+}
+
+/* Phones. The five page tabs have to fit on one line, and at the desktop
+   sizing they need ~460px of the ~326px a 390px viewport actually offers once
+   body padding is taken out — so this reclaims width from three places at
+   once: the body's side padding (2rem is generous for a phone), the tabs' own
+   horizontal padding, and the label size. Vertical padding is deliberately NOT
+   reduced as far, to keep the tap targets comfortable.
+
+   The widest locale is French (Accueil/Cycle/Accords/Couleur/Index); a spec
+   test asserts one row at 390px for all five, so a future label change that
+   no longer fits fails rather than silently wrapping. */
+@media (width <= 480px) {
+  body {
+    padding: 1rem;
+  }
+
+  .tabs {
+    gap: 0.25rem;
+  }
+
+  .tab {
+    padding: 0.55rem 0.45rem;
+    font-size: 0.8rem;
+  }
+
+  .langs {
+    gap: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  /* Tighten the example table too, so it usually fits without scrolling even
+     in the longest-named locales; the scroll box above is the guarantee. */
+  .chord-table {
+    font-size: 0.8rem;
+  }
+
+  .chord-table th,
+  .chord-table td {
+    padding: 0.35rem 0.4rem;
+  }
+}
+
+/* The smallest phones still in use (iPhone SE at 320px). One more step down
+   keeps the Romance-language labels on a single row there too; below this the
+   tabs are allowed to wrap rather than shrink further, since the labels would
+   stop being comfortably readable. */
+@media (width <= 340px) {
+  .tabs {
+    gap: 0.15rem;
+  }
+
+  .tab {
+    padding: 0.55rem 0.3rem;
+    font-size: 0.72rem;
   }
 }
