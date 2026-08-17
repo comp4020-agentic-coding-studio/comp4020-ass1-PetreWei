@@ -153,6 +153,24 @@ means building legibly is part of building well.
 You don't need a name, a student number, or any identity file in the repo: we
 know whose repo it is. Spend the effort on the work.
 
+## Testing interactive client scripts
+
+`spec/*.test.ts` runs against the **built** `dist/index.html` parsed with
+plain JSDOM (see `spec/starter.test.ts`'s original pattern) --- JSDOM does not
+reliably execute `<script type="module">`, so a test cannot simulate a click
+and assert on the DOM changes that `main.ts` makes in a real browser. Don't
+try to integration-test click-driven behaviour this way; it'll look like it
+should work and then silently not run the script at all.
+
+The convention that gets real coverage instead: keep all the actual logic
+(data, derivations, math) in a plain DOM-free module under `src/lib/`, unit-test
+that directly by importing it in the spec file, and separately assert
+(statically, against the built HTML) that the interactive elements and the
+targets the client script needs exist with the right attributes. `main.ts`
+itself stays thin glue with nothing worth unit-testing on its own --- verify
+its actual behaviour by hand in a real browser (dev server or a headless one)
+instead.
+
 ## This file is yours
 
 This CLAUDE.md is a starting point, not a fixed rulebook. As you learn what your
