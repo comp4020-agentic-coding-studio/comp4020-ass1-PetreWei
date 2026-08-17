@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
@@ -610,31 +610,56 @@ describe("circle of fifths: built page structure (static parse, no script execut
     ]);
   });
 
-  it("links to the theory page with a base-anchored (not page-relative) href", () => {
+  it("links to every other page with base-anchored (not page-relative) hrefs", () => {
     const links = Array.from(doc!.querySelectorAll("a")).map((a) => a.getAttribute("href"));
-    expect(links).toContain("/comp4020-ass1-PetreWei/theory.html");
+    for (const file of ["circle.html", "chords.html", "colour.html", "site-index.html"]) {
+      expect(links, `home page should link to ${file}`).toContain(
+        `/comp4020-ass1-PetreWei/${file}`,
+      );
+    }
   });
 
   it("renders the nav as tabs, with the current page marked", () => {
     const tabs = Array.from(doc!.querySelectorAll(".tab"));
-    expect(tabs.length).toBe(2);
+    expect(tabs.length).toBe(5);
     const current = tabs.find((t) => t.getAttribute("aria-current") === "page");
     expect(current?.textContent?.trim()).toBe("Home");
   });
+
+  it("keeps the interactive circle, chord table and keyboard on the home page", () => {
+    expect(doc!.querySelectorAll(".key-wedge").length).toBe(24);
+    expect(doc!.querySelector('[data-testid="chord-table"]')).toBeTruthy();
+    expect(doc!.querySelector('[data-testid="piano-keyboard"]')).toBeTruthy();
+    expect(doc!.querySelector('[data-testid="happy-birthday-button"]')).toBeTruthy();
+    // The client script is what makes them interactive, and it belongs here
+    // and nowhere else — see the theory-pages suite below.
+    expect(doc!.querySelector("script[src]")).toBeTruthy();
+  });
 });
 
-describe("chromesthesia theory page (static parse)", () => {
-  const distPath = resolve("dist/theory.html");
+// The single long theory page was split into one page per topic. Each is
+// prose only: the interactive wheel, chord table and keyboard stay on the
+// home page, so none of these may ship a client script.
+const THEORY_PAGES = [
+  { file: "circle.html", tab: "Circle", heading: "What the circle of fifths shows" },
+  { file: "chords.html", tab: "Chords", heading: "Chords, numerals and functions" },
+  { file: "colour.html", tab: "Colour", heading: "Where the colours come from" },
+  { file: "site-index.html", tab: "Index", heading: "Index" },
+] as const;
+
+describe.each(THEORY_PAGES)("$file (static parse)", ({ file, tab, heading }) => {
+  const distPath = resolve("dist", file);
   const doc = existsSync(distPath)
     ? new JSDOM(readFileSync(distPath, "utf8")).window.document
     : null;
 
-  it("built dist/theory.html", () => {
+  it(`built dist/${file}`, () => {
     expect(doc, `${distPath} not found — run the build first`).toBeTruthy();
   });
 
-  it("has exactly one top-level heading and a nav", () => {
+  it("has exactly one top-level heading, naming its topic, and a nav", () => {
     expect(doc!.querySelectorAll("h1").length).toBe(1);
+    expect(doc!.querySelector("h1")?.textContent?.trim()).toBe(heading);
     expect(doc!.querySelector("nav")).toBeTruthy();
   });
 
@@ -643,24 +668,75 @@ describe("chromesthesia theory page (static parse)", () => {
     expect(links).toContain("/comp4020-ass1-PetreWei/");
   });
 
-  it("marks the theory tab as current", () => {
+  it(`marks the ${tab} tab as current, and only that one`, () => {
     const tabs = Array.from(doc!.querySelectorAll(".tab"));
-    const current = tabs.find((t) => t.getAttribute("aria-current") === "page");
-    expect(current?.textContent?.trim()).toBe("Theory");
+    expect(tabs.length).toBe(5);
+    const current = tabs.filter((t) => t.getAttribute("aria-current") === "page");
+    // Exactly one, not just "the first one found": marking two tabs current
+    // would still satisfy a .find() lookup while being wrong on the page.
+    expect(current.length).toBe(1);
+    expect(current[0].textContent?.trim()).toBe(tab);
+  });
+
+  it("carries no client script — the interactive parts live on the home page", () => {
+    expect(doc!.querySelectorAll("script").length).toBe(0);
+  });
+});
+
+describe("site index (static parse)", () => {
+  const distPath = resolve("dist/site-index.html");
+  const doc = existsSync(distPath)
+    ? new JSDOM(readFileSync(distPath, "utf8")).window.document
+    : null;
+
+  it("lists every other page in its table of contents", () => {
+    const entries = Array.from(doc!.querySelectorAll(".site-index-entry"));
+    expect(entries.length).toBe(4);
+    const links = entries.flatMap((entry) =>
+      Array.from(entry.querySelectorAll("a")).map((a) => a.getAttribute("href")),
+    );
+    for (const file of ["", "circle.html", "chords.html", "colour.html"]) {
+      expect(links, `index should link to ${file || "the home page"}`).toContain(
+        `/comp4020-ass1-PetreWei/${file}`,
+      );
+    }
+  });
+
+  it("summarises what each page covers", () => {
+    for (const entry of Array.from(doc!.querySelectorAll(".site-index-entry"))) {
+      expect(entry.querySelector("h2")?.textContent?.trim()).toBeTruthy();
+      expect(entry.querySelector("p")?.textContent?.trim().length ?? 0).toBeGreaterThan(20);
+    }
   });
 });
 
 describe("references section on every built page", () => {
   const distDir = resolve("dist");
+  // Discovered rather than listed, so adding a page can't quietly opt it out
+  // of the citation checks — the old hardcoded pair did exactly that.
   const pages = existsSync(distDir)
-    ? ["index.html", "theory.html"].map((name) => ({
-        name,
-        doc: new JSDOM(readFileSync(resolve(distDir, name), "utf8")).window.document,
-      }))
+    ? readdirSync(distDir, { recursive: true })
+        .map(String)
+        .filter((name) => name.endsWith(".html"))
+        .sort()
+        .map((name) => ({
+          name,
+          doc: new JSDOM(readFileSync(resolve(distDir, name), "utf8")).window.document,
+        }))
     : [];
 
   it("built the site", () => {
     expect(pages.length, "dist/ not found — run the build first").toBeGreaterThan(0);
+  });
+
+  it("found all five pages", () => {
+    expect(pages.map((page) => page.name)).toEqual([
+      "chords.html",
+      "circle.html",
+      "colour.html",
+      "index.html",
+      "site-index.html",
+    ]);
   });
 
   for (const { name, doc } of pages) {
@@ -679,6 +755,20 @@ describe("references section on every built page", () => {
       );
       expect(links).toContain("https://www.musicca.com/circle-of-fifths");
       expect(links).toContain("https://fifths.chromatone.center/");
+    });
+
+    it(`${name} cites the sources for the theory the split pages explain`, () => {
+      const links = Array.from(doc.querySelectorAll("footer a")).map((a) =>
+        a.getAttribute("href"),
+      );
+      for (const url of [
+        "https://en.wikipedia.org/wiki/Triad_(music)",
+        "https://en.wikipedia.org/wiki/Roman_numeral_analysis",
+        "https://en.wikipedia.org/wiki/Scientific_pitch_notation",
+        "https://en.wikipedia.org/wiki/12_equal_temperament",
+      ]) {
+        expect(links, `missing reference: ${url}`).toContain(url);
+      }
     });
   }
 });

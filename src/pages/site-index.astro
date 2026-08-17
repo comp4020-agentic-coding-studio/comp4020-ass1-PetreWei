@@ -1,0 +1,73 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const base = import.meta.env.BASE_URL.endsWith("/")
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+
+const contents = [
+  {
+    label: "Home",
+    file: "",
+    summary:
+      "The interactive wheel itself: click a key for its chord, read its roman numerals, play its chords on the keyboard, and hear Happy Birthday in that key.",
+    topics: ["the wheel", "chord table", "keyboard", "Happy Birthday"],
+  },
+  {
+    label: "Circle",
+    file: "circle.html",
+    summary:
+      "Why twelve keys form a ring, and what the ♯/♭ badges, the inner ring and the thin outline on the wheel each mean.",
+    topics: [
+      "what a fifth is",
+      "key signatures",
+      "relative minors",
+      "closely-related keys",
+    ],
+  },
+  {
+    label: "Chords",
+    file: "chords.html",
+    summary:
+      "How a key's seven chords are built, why they carry roman numerals, and how the notes are tuned and played back.",
+    topics: [
+      "triads",
+      "diatonic chords",
+      "scale-degree functions",
+      "roman numerals",
+      "octave numbers",
+      "equal temperament and A440",
+      "transposition",
+    ],
+  },
+  {
+    label: "Colour",
+    file: "colour.html",
+    summary:
+      "What chromesthesia actually is, why these particular colours are a designed system rather than measured data, and the full list of 24.",
+    topics: ["chromesthesia", "Mr Mars' colour wheel", "all 24 key colours"],
+  },
+];
+---
+
+<Layout title="Index — Chromesthesia Circle of Fifths">
+  <main>
+    <h1>Index</h1>
+    <p>
+      Four pages: the wheel you can play with, and three that explain what it's
+      showing you. Everything here stays at the level of fundamentals.
+    </p>
+
+    <ul class="site-index-list">
+      {
+        contents.map((entry) => (
+          <li class="site-index-entry">
+            <h2><a href={`${base}${entry.file}`}>{entry.label}</a></h2>
+            <p>{entry.summary}</p>
+            <p class="site-index-topics">{entry.topics.join(" · ")}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </main>
+</Layout>

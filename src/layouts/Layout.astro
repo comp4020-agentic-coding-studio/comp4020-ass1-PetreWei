@@ -10,10 +10,39 @@ const { title } = Astro.props;
 const base = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
-const homeHref = base;
-const theoryHref = `${base}theory.html`;
-const isTheory =
-  Astro.url.pathname.endsWith("/theory.html") || Astro.url.pathname.endsWith("/theory");
+
+// Every page in the site, in header order. Home is the empty filename (the
+// base URL itself); the Index tab sits last, as a table of contents.
+const PAGES = [
+  { label: "Home", file: "" },
+  { label: "Circle", file: "circle.html" },
+  { label: "Chords", file: "chords.html" },
+  { label: "Colour", file: "colour.html" },
+  { label: "Index", file: "site-index.html" },
+] as const;
+
+// Matched on the emitted filename rather than the whole path, because the
+// deployed pathname carries the repo's base prefix. Exactly one tab must come
+// back true — a spec test asserts that, since marking two would silently look
+// like the first one being current.
+function isCurrent(file: string): boolean {
+  const path = Astro.url.pathname;
+  if (file === "") {
+    return (
+      path === "/" ||
+      path.endsWith("/index.html") ||
+      path === base ||
+      path === base.replace(/\/$/, "")
+    );
+  }
+  return path.endsWith(`/${file}`);
+}
+
+const tabs = PAGES.map((page) => ({
+  label: page.label,
+  href: `${base}${page.file}`,
+  current: isCurrent(page.file),
+}));
 ---
 
 <!doctype html>
@@ -26,8 +55,13 @@ const isTheory =
   <body>
     <header>
       <nav class="tabs" aria-label="Primary">
-        <a class="tab" href={homeHref} aria-current={isTheory ? undefined : "page"}>Home</a>
-        <a class="tab" href={theoryHref} aria-current={isTheory ? "page" : undefined}>Theory</a>
+        {
+          tabs.map((tab) => (
+            <a class="tab" href={tab.href} aria-current={tab.current ? "page" : undefined}>
+              {tab.label}
+            </a>
+          ))
+        }
       </nav>
     </header>
     <slot />
@@ -55,6 +89,23 @@ const isTheory =
           Chromatone, <a href="https://fifths.chromatone.center/">"Circle of Fifths"</a>
           — reference for keeping every key's colour visible permanently and
           showing the selected key's detail at the centre of the wheel.
+        </li>
+        <li>
+          Wikipedia, <a href="https://en.wikipedia.org/wiki/Triad_(music)">"Triad (music)"</a>
+          — how the three-note chords in the chord table are built.
+        </li>
+        <li>
+          Wikipedia, <a href="https://en.wikipedia.org/wiki/Roman_numeral_analysis">"Roman numeral analysis"</a>
+          — the roman numerals, scale-degree names, and chord qualities shown on
+          the wheel and in the chord table.
+        </li>
+        <li>
+          Wikipedia, <a href="https://en.wikipedia.org/wiki/Scientific_pitch_notation">"Scientific pitch notation"</a>
+          — the octave numbers printed on the keyboard's white keys (C5, D5, …).
+        </li>
+        <li>
+          Wikipedia, <a href="https://en.wikipedia.org/wiki/12_equal_temperament">"12 equal temperament"</a>
+          — the A440 tuning the played frequencies are derived from.
         </li>
       </ul>
     </footer>

@@ -1,0 +1,136 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { KEYS, getDiatonicChords } from "../lib/circleOfFifths.ts";
+
+const base = import.meta.env.BASE_URL.endsWith("/")
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+
+// Built from the same function the home page's live table uses, so this
+// worked example can never drift out of step with what the app shows.
+const cMajorChords = getDiatonicChords(KEYS[0], "major");
+---
+
+<Layout title="Chords — Chromesthesia Circle of Fifths">
+  <main>
+    <h1>Chords, numerals and functions</h1>
+
+    <section class="theory-section">
+      <h2>Building a triad</h2>
+      <p>
+        A <a href="https://en.wikipedia.org/wiki/Triad_(music)">triad</a> is a
+        three-note chord: pick a note of the scale, then add the note two steps
+        up and the note four steps up — every other note. Whether the result
+        sounds major, minor or diminished depends only on how many semitones
+        those two additions land at:
+      </p>
+      <ul>
+        <li><strong>Major</strong> — 4 semitones to the middle note, 7 to the top.</li>
+        <li><strong>Minor</strong> — 3 semitones to the middle note, 7 to the top.</li>
+        <li><strong>Diminished</strong> — 3 semitones to the middle note, 6 to the top.</li>
+      </ul>
+      <p>
+        That single semitone difference in the middle note is the whole
+        difference between a chord sounding bright and sounding sad.
+      </p>
+    </section>
+
+    <section class="theory-section">
+      <h2>The seven chords of a key</h2>
+      <p>
+        Build a triad on each of the seven notes of a scale, using only notes
+        from that scale, and you get the seven chords that belong to the key —
+        its <em>diatonic</em> chords. Their pattern of qualities is the same in
+        every major key, which is why the wheel can label them at all. Each
+        degree also has a traditional name for the job it does, and a
+        <a href="https://en.wikipedia.org/wiki/Roman_numeral_analysis">roman numeral</a>
+        that encodes its quality: uppercase for major, lowercase for minor, and
+        a small ° for diminished.
+      </p>
+      <table class="chord-table">
+        <caption>The seven diatonic chords of C major</caption>
+        <thead>
+          <tr>
+            <th scope="col">Chord</th>
+            <th scope="col">Function</th>
+            <th scope="col">Root</th>
+            <th scope="col">Quality</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            cMajorChords.map((chord) => (
+              <tr>
+                <td>{chord.numeral}</td>
+                <td>{chord.functionName}</td>
+                <td>{chord.root}</td>
+                <td>{chord.quality}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+      <p>
+        The two that do most of the work are the <strong>dominant</strong> (V)
+        and the <strong>subdominant</strong> (IV): V tends to pull back to the
+        tonic, which is why so much music ends V → I. In a minor key the same
+        construction gives a different pattern — i, ii°, III, iv, v, VI, VII —
+        because the natural minor scale's own notes differ, and its seventh
+        degree sits a whole step below the tonic rather than a half step, so
+        it's called the <em>subtonic</em> instead of the leading tone.
+      </p>
+    </section>
+
+    <section class="theory-section">
+      <h2>Why only three slices light up</h2>
+      <p>
+        Pick a key on the home page and roman numerals appear on six wedges,
+        spread across just three slices of the wheel — the key itself, its
+        dominant, and its subdominant. That isn't a simplification; it's the
+        reason the circle of fifths is useful. Six of a key's seven chords are
+        the major and minor chords of exactly those three neighbouring
+        positions: for C major, I and vi sit in C's own slice, V and iii in G's,
+        and IV and ii in F's.
+      </p>
+      <p>
+        The seventh, vii°, is diminished. It has no key of its own on the wheel,
+        so it gets no wedge — but it still appears in the chord table, which
+        lists all seven.
+      </p>
+    </section>
+
+    <section class="theory-section">
+      <h2>Hearing it</h2>
+      <p>
+        The keyboard's white keys are labelled with an octave number —
+        <code>C5</code>, <code>D5</code> and so on. That's
+        <a href="https://en.wikipedia.org/wiki/Scientific_pitch_notation">scientific pitch notation</a>:
+        the letter names the note, the number says which octave it belongs to,
+        and the number ticks over at every C rather than at every A. It's how
+        two keys that are both "C" can be told apart.
+      </p>
+      <p>
+        The pitch each key actually plays comes from
+        <a href="https://en.wikipedia.org/wiki/12_equal_temperament">12-tone equal temperament</a>
+        tuned to A440: the octave is divided into twelve equal steps, so each
+        semitone multiplies the frequency by the twelfth root of two (about
+        1.0595), counting up or down from A4 at 440 Hz. Every note you hear here
+        is worked out with that one formula.
+      </p>
+      <p>
+        The <strong>Arpeggio / Chord</strong> toggle changes only how a chord is
+        delivered, not what it contains: arpeggio plays the three notes one after
+        another, chord sounds them together. And because every chord is described
+        as a scale degree rather than as fixed notes, the same tune can be
+        rebuilt in any key —
+        <a href="https://en.wikipedia.org/wiki/Transposition_(music)">transposition</a>.
+        That's what the Happy Birthday button does: it plays the tune's shape,
+        starting from whichever key you picked.
+      </p>
+      <p>
+        Which colour each of those keys is drawn in is a separate story — see the
+        <a href={`${base}colour.html`}>Colour</a> page.
+      </p>
+    </section>
+  </main>
+</Layout>

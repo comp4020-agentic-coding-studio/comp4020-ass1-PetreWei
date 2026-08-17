@@ -15,37 +15,9 @@ const minorSwatches = KEYS.map((key) => ({
 }));
 ---
 
-<Layout title="Theory — Chromesthesia Circle of Fifths">
+<Layout title="Colour — Chromesthesia Circle of Fifths">
   <main>
-    <h1>The theory behind the circle</h1>
-
-    <section class="theory-section">
-      <h2>What the circle of fifths actually shows</h2>
-      <p>
-        A "fifth" is just two notes seven semitones apart — one of the most
-        consonant intervals in music, which is why stacking fifths on top of
-        each other (C, then G a fifth above it, then D a fifth above that,
-        and so on) produces a sequence of keys that all sound closely
-        related to their neighbors. Keep stacking and you pass through all
-        12 possible keys before landing back on C — hence the circle.
-      </p>
-      <p>
-        Each step around the circle changes exactly one note in the scale:
-        G major is C major's scale with F swapped for F♯, D major swaps in
-        C♯ as well, and so on. That's also why key signatures (the sharps or
-        flats written at the start of a piece of sheet music) grow by
-        exactly one accidental per step clockwise, and shrink by one per
-        step counter-clockwise into flats.
-      </p>
-      <p>
-        Every major key also has a <strong>relative minor</strong>: a minor
-        key that shares its exact key signature. It sits at the same
-        position on the circle (shown here as the inner ring) and its
-        natural minor scale uses the same seven notes as its major, just
-        starting three semitones lower — for example A minor is C major's
-        seven notes, starting on A instead of C.
-      </p>
-    </section>
+    <h1>Where the colours come from</h1>
 
     <section class="theory-section">
       <h2>Chromesthesia: sound that comes with colour</h2>
@@ -63,7 +35,7 @@ const minorSwatches = KEYS.map((key) => ({
     </section>
 
     <section class="theory-section">
-      <h2>Where this site's colours actually come from</h2>
+      <h2>This site's colours are designed, not measured</h2>
       <p>
         The specific colour shown for each key on this site is <strong>not</strong>
         measured chromesthesia data — no such single mapping exists, since
@@ -89,6 +61,14 @@ const minorSwatches = KEYS.map((key) => ({
         relative minor reuses that same hue at lower saturation and
         lightness — a literal reading of his "darker shade" rule.
       </p>
+    </section>
+
+    <section class="theory-section">
+      <h2>The 24 keys and their colours</h2>
+      <p>
+        The twelve major keys of the outer ring, each with the colour name Mr
+        Mars gives it:
+      </p>
       <ul class="color-key-list">
         {
           majorSwatches.map((swatch) => (
@@ -99,6 +79,7 @@ const minorSwatches = KEYS.map((key) => ({
           ))
         }
       </ul>
+      <p>And the twelve relative minors of the inner ring, each a darker shade of its major:</p>
       <ul class="color-key-list">
         {
           minorSwatches.map((swatch) => (

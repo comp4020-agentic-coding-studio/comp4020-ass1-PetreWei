@@ -1,0 +1,78 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const base = import.meta.env.BASE_URL.endsWith("/")
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+---
+
+<Layout title="The circle — Chromesthesia Circle of Fifths">
+  <main>
+    <h1>What the circle of fifths shows</h1>
+
+    <section class="theory-section">
+      <h2>A fifth, and why it makes a circle</h2>
+      <p>
+        A "fifth" is just two notes seven semitones apart — one of the most
+        consonant intervals in music, which is why stacking fifths on top of
+        each other (C, then G a fifth above it, then D a fifth above that,
+        and so on) produces a sequence of keys that all sound closely
+        related to their neighbours. Keep stacking and you pass through all
+        12 possible keys before landing back on C — hence the circle. The
+        outer ring on the home page is exactly that sequence, going clockwise.
+      </p>
+    </section>
+
+    <section class="theory-section">
+      <h2>Key signatures: one accidental per step</h2>
+      <p>
+        Each step around the circle changes exactly one note in the scale:
+        G major is C major's scale with F swapped for F♯, D major swaps in
+        C♯ as well, and so on. That's also why
+        <a href="https://en.wikipedia.org/wiki/Key_signature">key signatures</a>
+        (the sharps or flats written at the start of a piece of sheet music)
+        grow by exactly one accidental per step clockwise, and by one flat per
+        step counter-clockwise.
+      </p>
+      <p>
+        The small ♯ and ♭ marks printed around the outside of the wheel are
+        those counts: one ♯ next to G, two next to D, and so on round to the
+        flats on the other side. C sits at the top with neither, because C
+        major uses no sharps or flats at all.
+      </p>
+    </section>
+
+    <section class="theory-section">
+      <h2>The inner ring: relative minors</h2>
+      <p>
+        Every major key also has a
+        <a href="https://en.wikipedia.org/wiki/Relative_key">relative minor</a>:
+        a minor key that shares its exact key signature. It sits at the same
+        position on the circle — the inner ring on the home page — and its
+        natural minor scale uses the same seven notes as its major, just
+        starting three semitones lower. A minor is C major's seven notes
+        starting on A instead of C, which is why both wedges sit in the same
+        slice of the wheel and carry the same accidental count.
+      </p>
+    </section>
+
+    <section class="theory-section">
+      <h2>The outline: three closely-related keys</h2>
+      <p>
+        Pick a key on the home page and a thin outline traces three slices:
+        the key you picked, plus its immediate neighbour on either side. Those
+        neighbours are its
+        <a href="https://en.wikipedia.org/wiki/Closely_related_key">closely-related keys</a>
+        — one step clockwise is the <strong>dominant</strong> (a fifth up),
+        one step counter-clockwise is the <strong>subdominant</strong> (a fifth
+        down). Because each step changes only one note, those three keys differ
+        from each other by a single accidental, which is what makes moving
+        between them sound smooth rather than abrupt.
+      </p>
+      <p>
+        Those same three slices are where all of the picked key's chords live.
+        That's the subject of the <a href={`${base}chords.html`}>Chords</a> page.
+      </p>
+    </section>
+  </main>
+</Layout>

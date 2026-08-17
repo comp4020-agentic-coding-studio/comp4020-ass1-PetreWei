@@ -16,8 +16,11 @@ a {
   color: #0b5fff;
 }
 
+/* Wraps because five tabs measure wider than a 390px phone viewport, and a
+   nav that overflowed would give the whole page a horizontal scrollbar. */
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   padding: 0;
   margin: 0 0 1.5rem;
@@ -370,15 +373,25 @@ a {
   text-align: left;
 }
 
-.chord-table tbody tr {
+.chord-table caption {
+  padding-bottom: 0.4rem;
+  text-align: left;
+  font-weight: 600;
+}
+
+/* Only the home page's table plays a chord when a row is clicked. The worked
+   example on the Chords page reuses .chord-table for layout alone, so the
+   click affordances live on this modifier rather than being overridden back
+   off — same specificity would make that a cascade-order trap. */
+.chord-table-playable tbody tr {
   cursor: pointer;
 }
 
-.chord-table tbody tr:hover {
+.chord-table-playable tbody tr:hover {
   background: #f2f6ff;
 }
 
-.chord-table tbody tr:focus-visible {
+.chord-table-playable tbody tr:focus-visible {
   outline: 3px solid #0b5fff;
   outline-offset: -2px;
 }
@@ -413,6 +426,32 @@ footer h2 {
 
 .theory-section h2 {
   margin-bottom: 0.5rem;
+}
+
+.site-index-list {
+  padding: 0;
+  margin: 1.5rem 0 0;
+  list-style: none;
+}
+
+.site-index-entry {
+  padding-left: 1rem;
+  margin-bottom: 1.5rem;
+  border-left: 3px solid #ddd;
+}
+
+.site-index-entry h2 {
+  margin-bottom: 0.3rem;
+  font-size: 1.1rem;
+}
+
+.site-index-entry p {
+  margin: 0.3rem 0;
+}
+
+.site-index-topics {
+  color: #555;
+  font-size: 0.85rem;
 }
 
 .color-key-list {
