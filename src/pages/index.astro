@@ -173,76 +173,91 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
         <div class="circle-wrapper" role="group" aria-label="Circle of fifths keys">
           {
             positionedMajorKeys.map((key) => (
-              <button
-                type="button"
-                class="key-wedge"
-                data-key={key.name}
-                data-index={key.index}
-                data-mode="major"
-                aria-pressed="false"
-                aria-label={
-                  key.index === 6
-                    ? "F sharp major, or G flat major"
-                    : `${key.name} major`
-                }
-                style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
-              >
+              <>
+                <button
+                  type="button"
+                  class="key-wedge"
+                  data-key={key.name}
+                  data-index={key.index}
+                  data-mode="major"
+                  aria-pressed="false"
+                  aria-label={
+                    key.index === 6
+                      ? "F sharp major, or G flat major"
+                      : `${key.name} major`
+                  }
+                  style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
+                >
+                  <span
+                    class={`wedge-name ${key.nameParts ? "wedge-name-enharmonic" : ""}`}
+                    style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}
+                  >
+                    {key.nameParts ? (
+                      <>
+                        <span class="wedge-name-part">{key.nameParts[0]}</span>
+                        <span class="wedge-name-part">{key.nameParts[1]}</span>
+                      </>
+                    ) : (
+                      key.name
+                    )}
+                  </span>
+                </button>
+                {/* Sits outside the button's own clip-path (a clipped element
+                clips its descendants too), so this has to be a sibling, not a
+                child, or it would be clipped away and invisible. */}
                 <span
-                  class="wedge-numeral"
+                  class="wedge-numeral wedge-numeral-major"
                   data-testid="wedge-numeral"
+                  data-index={key.index}
+                  data-mode="major"
                   style={`--label-left: ${key.numeralLeft}%; --label-top: ${key.numeralTop}%;`}
                 />
-                <span
-                  class={`wedge-name ${key.nameParts ? "wedge-name-enharmonic" : ""}`}
-                  style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}
-                >
-                  {key.nameParts ? (
-                    <>
-                      <span class="wedge-name-part">{key.nameParts[0]}</span>
-                      <span class="wedge-name-part">{key.nameParts[1]}</span>
-                    </>
-                  ) : (
-                    key.name
-                  )}
-                </span>
-              </button>
+              </>
             ))
           }
           {
             positionedMinorKeys.map((key) => (
-              <button
-                type="button"
-                class="key-wedge key-wedge-minor"
-                data-key={key.relativeMinorName}
-                data-index={key.index}
-                data-mode="minor"
-                aria-pressed="false"
-                aria-label={
-                  key.index === 6
-                    ? "D sharp minor, or E flat minor"
-                    : `${key.relativeMinorName} minor`
-                }
-                style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
-              >
+              <>
+                <button
+                  type="button"
+                  class="key-wedge key-wedge-minor"
+                  data-key={key.relativeMinorName}
+                  data-index={key.index}
+                  data-mode="minor"
+                  aria-pressed="false"
+                  aria-label={
+                    key.index === 6
+                      ? "D sharp minor, or E flat minor"
+                      : `${key.relativeMinorName} minor`
+                  }
+                  style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
+                >
+                  <span
+                    class={`wedge-name ${key.nameParts ? "wedge-name-enharmonic" : ""}`}
+                    style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}
+                  >
+                    {key.nameParts ? (
+                      <>
+                        <span class="wedge-name-part">{key.nameParts[0]}</span>
+                        <span class="wedge-name-part">{key.nameParts[1]}</span>
+                      </>
+                    ) : (
+                      minorLabel(key.relativeMinorName)
+                    )}
+                  </span>
+                </button>
+                {/* This numeral sits below MINOR_RING.inner, off the coloured
+                band entirely, so it also needs to be unclipped (see above) —
+                and, since it's no longer painted over a coloured wedge, it
+                needs a dark ink instead of the wedge's light --wedge-ink. */}
                 <span
-                  class="wedge-numeral"
+                  class="wedge-numeral wedge-numeral-minor"
                   data-testid="wedge-numeral"
+                  data-index={key.index}
+                  data-mode="minor"
                   style={`--label-left: ${key.numeralLeft}%; --label-top: ${key.numeralTop}%;`}
                 />
-                <span
-                  class={`wedge-name ${key.nameParts ? "wedge-name-enharmonic" : ""}`}
-                  style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}
-                >
-                  {key.nameParts ? (
-                    <>
-                      <span class="wedge-name-part">{key.nameParts[0]}</span>
-                      <span class="wedge-name-part">{key.nameParts[1]}</span>
-                    </>
-                  ) : (
-                    minorLabel(key.relativeMinorName)
-                  )}
-                </span>
-              </button>
+              </>
             ))
           }
           {

@@ -266,16 +266,26 @@ function updateSelection(index: number, quality: KeyQuality): void {
   }
 
   for (const numeral of wedgeNumerals) {
+    const numeralIndex = Number(numeral.dataset.index);
+    const numeralMode = numeral.dataset.mode as KeyQuality;
+    numeral.classList.toggle(
+      "wedge-numeral-pressed",
+      numeralIndex === index && numeralMode === quality,
+    );
+    numeral.classList.toggle(
+      "wedge-numeral-dominant",
+      numeralIndex === dominant && numeralMode === quality,
+    );
+    numeral.classList.toggle(
+      "wedge-numeral-subdominant",
+      numeralIndex === subdominant && numeralMode === quality,
+    );
     numeral.textContent = "";
   }
   for (const assignment of getWheelNumerals(index, quality)) {
-    const numeral = wedgeNumerals.find((el) => {
-      const wedge = el.closest<HTMLButtonElement>("[data-index]");
-      return (
-        Number(wedge?.dataset.index) === assignment.index &&
-        wedge?.dataset.mode === assignment.mode
-      );
-    });
+    const numeral = wedgeNumerals.find(
+      (el) => Number(el.dataset.index) === assignment.index && el.dataset.mode === assignment.mode,
+    );
     if (numeral) numeral.textContent = assignment.numeral;
   }
 

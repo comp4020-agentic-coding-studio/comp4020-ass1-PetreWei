@@ -182,11 +182,21 @@ a {
   left: var(--label-left);
   top: var(--label-top);
   transform: translate(-50%, -50%);
-  color: var(--wedge-ink);
   font-size: clamp(0.55rem, 1.6vw, 0.75rem);
   font-weight: 700;
   min-height: 1em;
   pointer-events: none;
+}
+
+.wedge-numeral-major {
+  color: var(--wedge-ink);
+}
+
+/* Sits off the coloured minor ring, on the plain page background, so it
+   needs a dark ink instead of --wedge-ink (which is tuned for legibility
+   against a coloured wedge). */
+.wedge-numeral-minor {
+  color: #1a1a1a;
 }
 
 .key-wedge[aria-pressed="true"] .wedge-name,
@@ -202,10 +212,13 @@ a {
   font-size: clamp(0.6rem, 2vw, 0.85rem);
 }
 
-.key-wedge[aria-pressed="true"] .wedge-numeral,
-.key-wedge.neighbor-dominant .wedge-numeral,
-.key-wedge.neighbor-subdominant .wedge-numeral {
-  font-weight: 700;
+/* The numeral is a sibling of its wedge button, not a descendant (see the
+   markup comment in index.astro), so its emphasised state is driven directly
+   by main.ts toggling these classes on the numeral itself, mirroring the
+   pressed/neighbour classes it toggles on the button. */
+.wedge-numeral-pressed,
+.wedge-numeral-dominant,
+.wedge-numeral-subdominant {
   font-size: clamp(0.7rem, 2vw, 0.95rem);
 }
 
