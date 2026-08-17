@@ -162,12 +162,10 @@ a {
   font-size: clamp(0.6rem, 1.8vw, 0.8rem);
 }
 
-/* The one enharmonic wedge renders both spellings run together with no
-   separator (e.g. "G♭F♯"), so it needs a smaller size to avoid overflow. */
-.wedge-name.wedge-name-enharmonic {
-  font-size: clamp(0.5rem, 1.7vw, 0.7rem);
-}
-
+/* The one enharmonic minor wedge renders both spellings run together with
+   no separator (e.g. "E♭mD♯m"), so it needs a smaller size to avoid
+   overflow. The major-ring equivalent ("G♭F♯") stays at the same size as
+   every other major wedge. */
 .key-wedge-minor .wedge-name.wedge-name-enharmonic {
   font-size: clamp(0.46rem, 1.4vw, 0.6rem);
 }
