@@ -69,5 +69,50 @@ const contents = [
         ))
       }
     </ul>
+
+    {/* Every source for the whole site, gathered here rather than repeated in a
+    footer on all five pages. Kept deliberately short: CI's link check crawls
+    each distinct external URL once per run, and a burst of them gets
+    rate-limited from a shared runner IP — so name concepts in the prose and
+    cite them here, rather than linking inline as well. */}
+    <section class="theory-section references-section">
+      <h2>References</h2>
+      <ul class="references">
+        <li>
+          Mr Mars, <a href="https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm">"Musical Colour Wheel"</a>
+          (archived) — the 24-key colour scheme this site borrows for its
+          highlights. Cited via the Internet Archive: the original host refuses
+          automated requests, and a snapshot can't rot.
+        </li>
+        <li>
+          Wikipedia, <a href="https://en.wikipedia.org/wiki/Chromesthesia">"Chromesthesia"</a>
+          — background on the real sound-to-colour phenomenon.
+        </li>
+        <li>
+          Wikipedia, <a href="https://en.wikipedia.org/wiki/Circle_of_fifths">"Circle of fifths"</a>
+          — background on the music theory this diagram is built from.
+        </li>
+        <li>
+          Wikipedia, <a href="https://en.wikipedia.org/wiki/Roman_numeral_analysis">"Roman numeral analysis"</a>
+          — the triads, roman numerals, scale-degree names and chord qualities
+          shown on the wheel and in the chord table.
+        </li>
+        <li>
+          Wikipedia, <a href="https://en.wikipedia.org/wiki/12_equal_temperament">"12 equal temperament"</a>
+          — the A440 tuning the played frequencies are derived from, and the
+          octave numbering printed on the keyboard's white keys.
+        </li>
+        <li>
+          Musicca, <a href="https://www.musicca.com/circle-of-fifths">"Circle of Fifths"</a>
+          — reference for showing key signatures on the wheel and listing each
+          key's diatonic chords with roman numerals.
+        </li>
+        <li>
+          Chromatone, <a href="https://fifths.chromatone.center/">"Circle of Fifths"</a>
+          — reference for keeping every key's colour visible permanently and
+          showing the selected key's detail at the centre of the wheel.
+        </li>
+      </ul>
+    </section>
   </main>
 </Layout>

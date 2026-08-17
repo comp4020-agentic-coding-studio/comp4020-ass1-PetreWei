@@ -710,7 +710,7 @@ describe("site index (static parse)", () => {
   });
 });
 
-describe("references section on every built page", () => {
+describe("references, gathered on the index page", () => {
   const distDir = resolve("dist");
   // Discovered rather than listed, so adding a page can't quietly opt it out
   // of the citation checks — the old hardcoded pair did exactly that.
@@ -739,36 +739,62 @@ describe("references section on every built page", () => {
     ]);
   });
 
-  for (const { name, doc } of pages) {
-    it(`${name} cites Mr Mars' colour wheel as a reference`, () => {
-      const links = Array.from(doc.querySelectorAll("footer a")).map((a) =>
-        a.getAttribute("href"),
-      );
-      expect(links).toContain(
-        "https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
-      );
-    });
+  const indexRefs = () => {
+    const doc = pages.find((page) => page.name === "site-index.html")!.doc;
+    return Array.from(doc.querySelectorAll(".references-section a")).map((a) =>
+      a.getAttribute("href"),
+    );
+  };
 
-    it(`${name} cites musicca.com and chromatone.center as circle-of-fifths references`, () => {
-      const links = Array.from(doc.querySelectorAll("footer a")).map((a) =>
-        a.getAttribute("href"),
-      );
-      expect(links).toContain("https://www.musicca.com/circle-of-fifths");
-      expect(links).toContain("https://fifths.chromatone.center/");
-    });
+  it("gathers every source into one reference list on the index page", () => {
+    const doc = pages.find((page) => page.name === "site-index.html")!.doc;
+    expect(doc.querySelector(".references-section")).toBeTruthy();
+    expect(doc.querySelectorAll(".references li").length).toBe(7);
+  });
 
-    it(`${name} cites the sources for the theory the split pages explain`, () => {
-      const links = Array.from(doc.querySelectorAll("footer a")).map((a) =>
-        a.getAttribute("href"),
-      );
-      for (const url of [
-        "https://en.wikipedia.org/wiki/Roman_numeral_analysis",
-        "https://en.wikipedia.org/wiki/12_equal_temperament",
-      ]) {
-        expect(links, `missing reference: ${url}`).toContain(url);
-      }
-    });
-  }
+  it("cites Mr Mars' colour wheel, via the Internet Archive", () => {
+    // The original host 403s automated requests (CI included) while serving
+    // browsers fine, so the citation points at a dated snapshot: it resolves
+    // for the link check and can't rot. The live URL must not come back.
+    expect(indexRefs()).toContain(
+      "https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
+    );
+    const doc = pages.find((page) => page.name === "site-index.html")!.doc;
+    const all = Array.from(doc.querySelectorAll("a")).map((a) => a.getAttribute("href") ?? "");
+    expect(all.some((href) => href.startsWith("https://warrenmars.com/"))).toBe(false);
+  });
+
+  it("cites musicca.com and chromatone.center as circle-of-fifths references", () => {
+    expect(indexRefs()).toContain("https://www.musicca.com/circle-of-fifths");
+    expect(indexRefs()).toContain("https://fifths.chromatone.center/");
+  });
+
+  it("cites the sources for the theory the split pages explain", () => {
+    for (const url of [
+      "https://en.wikipedia.org/wiki/Chromesthesia",
+      "https://en.wikipedia.org/wiki/Circle_of_fifths",
+      "https://en.wikipedia.org/wiki/Roman_numeral_analysis",
+      "https://en.wikipedia.org/wiki/12_equal_temperament",
+    ]) {
+      expect(indexRefs(), `missing reference: ${url}`).toContain(url);
+    }
+  });
+
+  it("no longer repeats a footer on every page", () => {
+    for (const { name, doc } of pages) {
+      expect(doc.querySelector("footer"), `${name} should have no footer`).toBeNull();
+    }
+  });
+
+  it("keeps the blocked host out of every page, not just the index", () => {
+    for (const { name, doc } of pages) {
+      const hrefs = Array.from(doc.querySelectorAll("a")).map((a) => a.getAttribute("href") ?? "");
+      expect(
+        hrefs.filter((href) => href.startsWith("https://warrenmars.com/")),
+        `${name} still links the un-archived host`,
+      ).toEqual([]);
+    }
+  });
 
   // CI's link check crawls every distinct external URL concurrently and
   // Wikipedia 429s a burst of them from a shared runner IP — ten turned the

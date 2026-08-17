@@ -396,18 +396,19 @@ a {
   outline-offset: -2px;
 }
 
-footer {
-  max-width: 64rem;
-  margin: 3rem auto 0;
-  padding: 1.5rem 2rem 2rem;
+/* The references used to sit in a footer repeated on every page; they now live
+   once, at the end of the Index page, and keep the same quieter treatment. */
+.references-section {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
   border-top: 1px solid #ccc;
   font-size: 0.85rem;
   color: #444;
 }
 
-footer h2 {
-  font-size: 1rem;
+.references-section h2 {
   margin: 0 0 0.5rem;
+  font-size: 1rem;
 }
 
 .references {
