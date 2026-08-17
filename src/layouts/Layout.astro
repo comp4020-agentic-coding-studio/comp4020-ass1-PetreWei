@@ -17,5 +17,22 @@ const { title } = Astro.props;
   </head>
   <body>
     <slot />
+    <footer>
+      <h2>References</h2>
+      <ul class="references">
+        <li>
+          Mr Mars, <a href="https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm">"Musical Colour Wheel"</a>
+          — the 24-key colour scheme this site borrows for its highlights.
+        </li>
+        <li>
+          Wikipedia, <a href="https://en.wikipedia.org/wiki/Chromesthesia">"Chromesthesia"</a>
+          — background on the real sound-to-colour phenomenon.
+        </li>
+        <li>
+          Wikipedia, <a href="https://en.wikipedia.org/wiki/Circle_of_fifths">"Circle of fifths"</a>
+          — background on the music theory this diagram is built from.
+        </li>
+      </ul>
+    </footer>
   </body>
 </html>

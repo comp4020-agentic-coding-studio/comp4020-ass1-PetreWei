@@ -5,7 +5,12 @@ import { describe, expect, it } from "vitest";
 import {
   KEYS,
   PIANO_KEYS,
+  getKeyColor,
+  getKeyColorHue,
   getNeighborIndices,
+  getReadableTextColor,
+  getRelativeMinorScaleSpelling,
+  getRelativeMinorTonicPitchClass,
   getScaleDifference,
   getScalePitchClasses,
   getTriadFrequencies,
@@ -87,6 +92,63 @@ describe("circle of fifths: pure logic", () => {
       1, 3, 6, 8, 10,
     ]);
   });
+
+  it("derives each relative minor's tonic a minor third below its major", () => {
+    expect(KEYS.map((k) => getRelativeMinorTonicPitchClass(k.tonicPitchClass))).toEqual([
+      9, 4, 11, 6, 1, 8, 3, 10, 5, 0, 7, 2,
+    ]);
+  });
+
+  it("spells the natural minor scale as its major's scale rotated to the 6th degree", () => {
+    const cMajor = KEYS[0];
+    expect(getRelativeMinorScaleSpelling(cMajor)).toEqual([
+      "A", "B", "C", "D", "E", "F", "G",
+    ]);
+    const ebMajor = KEYS.find((k) => k.name === "E♭")!;
+    expect(getRelativeMinorScaleSpelling(ebMajor)).toEqual([
+      "C", "D", "E♭", "F", "G", "A♭", "B♭",
+    ]);
+  });
+
+  it("computes a minor triad a minor third above the tonic (A minor)", () => {
+    const aMinorTonic = getRelativeMinorTonicPitchClass(KEYS[0].tonicPitchClass);
+    expect(getTriadPitchClasses(aMinorTonic, "minor")).toEqual({
+      root: 9,
+      third: 0,
+      fifth: 4,
+    });
+  });
+
+  it("gives the minor triad a lower frequency third than the major triad at the same tonic", () => {
+    const majorThird = getTriadFrequencies(0, "major").third;
+    const minorThird = getTriadFrequencies(0, "minor").third;
+    expect(minorThird).toBeLessThan(majorThird);
+  });
+
+  it("assigns each major key a 30°-step hue anchored on F♯/G♭ = red", () => {
+    const fSharpIndex = KEYS.findIndex((k) => k.name === "F♯ / G♭");
+    const cIndex = KEYS.findIndex((k) => k.name === "C");
+    const dFlatIndex = KEYS.findIndex((k) => k.name === "D♭");
+    expect(getKeyColorHue(fSharpIndex)).toBe(0);
+    expect(getKeyColorHue(cIndex)).toBe(180);
+    expect(getKeyColorHue(dFlatIndex)).toBe(330);
+
+    const hues = KEYS.map((_, i) => getKeyColorHue(i));
+    expect(new Set(hues).size).toBe(12);
+    for (const hue of hues) expect(hue % 30).toBe(0);
+  });
+
+  it("gives minor keys a darker, less saturated shade of their major's hue", () => {
+    const major = getKeyColor(0, "major");
+    const minor = getKeyColor(0, "minor");
+    expect(minor.hue).toBe(major.hue);
+    expect(minor.css).not.toBe(major.css);
+  });
+
+  it("picks readable text colour by luminance for both light and dark hues", () => {
+    expect(getReadableTextColor(60, 0.9, 0.9)).toBe("#111111");
+    expect(getReadableTextColor(240, 0.7, 0.15)).toBe("#ffffff");
+  });
 });
 
 describe("circle of fifths: built page structure (static parse, no script execution)", () => {
@@ -99,24 +161,32 @@ describe("circle of fifths: built page structure (static parse, no script execut
     expect(doc, `${distPath} not found — run the build first`).toBeTruthy();
   });
 
-  it("renders exactly 12 key buttons matching the circle-of-fifths data", () => {
-    const buttons = Array.from(doc!.querySelectorAll("button[data-key]"));
-    expect(buttons.length).toBe(12);
-    expect(buttons.map((b) => b.getAttribute("data-key"))).toEqual(
+  it("renders 12 major and 12 minor key buttons matching the circle-of-fifths data", () => {
+    const majorButtons = Array.from(doc!.querySelectorAll('button[data-mode="major"]'));
+    const minorButtons = Array.from(doc!.querySelectorAll('button[data-mode="minor"]'));
+    expect(majorButtons.length).toBe(12);
+    expect(minorButtons.length).toBe(12);
+    expect(majorButtons.map((b) => b.getAttribute("data-key"))).toEqual(
       KEYS.map((k) => k.name),
+    );
+    expect(minorButtons.map((b) => b.getAttribute("data-key"))).toEqual(
+      KEYS.map((k) => k.relativeMinorName),
     );
   });
 
-  it("wires each button's data-index to its circle position", () => {
-    const buttons = Array.from(doc!.querySelectorAll("button[data-key]"));
-    buttons.forEach((b, i) => {
-      expect(b.getAttribute("data-index")).toBe(String(i));
-    });
+  it("wires each button's data-index to its circle position, per ring", () => {
+    for (const mode of ["major", "minor"]) {
+      const buttons = Array.from(doc!.querySelectorAll(`button[data-mode="${mode}"]`));
+      buttons.forEach((b, i) => {
+        expect(b.getAttribute("data-index")).toBe(String(i));
+      });
+    }
   });
 
-  it("gives each key button an accessible pressed state", () => {
+  it("gives every key button an accessible pressed state and a colour", () => {
     for (const b of doc!.querySelectorAll("button[data-key]")) {
       expect(b.hasAttribute("aria-pressed")).toBe(true);
+      expect(b.getAttribute("style")).toContain("--key-color");
     }
   });
 
@@ -134,4 +204,55 @@ describe("circle of fifths: built page structure (static parse, no script execut
       pianoKeys.filter((k) => k.classList.contains("piano-key-black")).length,
     ).toBe(5);
   });
+
+  it("links to the theory page", () => {
+    const links = Array.from(doc!.querySelectorAll("a")).map((a) => a.getAttribute("href"));
+    expect(links).toContain("./theory.html");
+  });
+});
+
+describe("chromesthesia theory page (static parse)", () => {
+  const distPath = resolve("dist/theory.html");
+  const doc = existsSync(distPath)
+    ? new JSDOM(readFileSync(distPath, "utf8")).window.document
+    : null;
+
+  it("built dist/theory.html", () => {
+    expect(doc, `${distPath} not found — run the build first`).toBeTruthy();
+  });
+
+  it("has exactly one top-level heading and a nav", () => {
+    expect(doc!.querySelectorAll("h1").length).toBe(1);
+    expect(doc!.querySelector("nav")).toBeTruthy();
+  });
+
+  it("links back to the home page", () => {
+    const links = Array.from(doc!.querySelectorAll("a")).map((a) => a.getAttribute("href"));
+    expect(links).toContain("./");
+  });
+});
+
+describe("references section on every built page", () => {
+  const distDir = resolve("dist");
+  const pages = existsSync(distDir)
+    ? ["index.html", "theory.html"].map((name) => ({
+        name,
+        doc: new JSDOM(readFileSync(resolve(distDir, name), "utf8")).window.document,
+      }))
+    : [];
+
+  it("built the site", () => {
+    expect(pages.length, "dist/ not found — run the build first").toBeGreaterThan(0);
+  });
+
+  for (const { name, doc } of pages) {
+    it(`${name} cites Mr Mars' colour wheel as a reference`, () => {
+      const links = Array.from(doc.querySelectorAll("footer a")).map((a) =>
+        a.getAttribute("href"),
+      );
+      expect(links).toContain(
+        "https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
+      );
+    });
+  }
 });

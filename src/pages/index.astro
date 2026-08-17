@@ -1,54 +1,88 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { KEYS, PIANO_KEYS } from "../lib/circleOfFifths.ts";
+import { KEYS, PIANO_KEYS, getKeyColor } from "../lib/circleOfFifths.ts";
 
-const RADIUS_PERCENT = 38;
+const MAJOR_RADIUS_PERCENT = 38;
+const MINOR_RADIUS_PERCENT = 21;
 
-const positionedKeys = KEYS.map((key, i) => {
-  const angleRad = ((i * 360) / KEYS.length) * (Math.PI / 180);
+function withPosition<T extends { index: number }>(key: T, radiusPercent: number) {
+  const angleRad = ((key.index * 360) / KEYS.length) * (Math.PI / 180);
   return {
     ...key,
-    left: 50 + RADIUS_PERCENT * Math.sin(angleRad),
-    top: 50 - RADIUS_PERCENT * Math.cos(angleRad),
+    left: 50 + radiusPercent * Math.sin(angleRad),
+    top: 50 - radiusPercent * Math.cos(angleRad),
   };
-});
+}
+
+const positionedMajorKeys = KEYS.map((key) => ({
+  ...withPosition(key, MAJOR_RADIUS_PERCENT),
+  color: getKeyColor(key.index, "major"),
+}));
+
+const positionedMinorKeys = KEYS.map((key) => ({
+  ...withPosition(key, MINOR_RADIUS_PERCENT),
+  color: getKeyColor(key.index, "minor"),
+}));
 ---
 
-<Layout title="Circle of Fifths">
+<Layout title="Chromesthesia Circle of Fifths">
   <header>
     <nav aria-label="Primary">
       <a href="./">Home</a>
+      <a href="./theory.html">Theory</a>
     </nav>
   </header>
   <main>
-    <h1>Circle of Fifths</h1>
+    <h1>Chromesthesia Circle of Fifths</h1>
     <p data-testid="intro">
-      New to music theory? You don't need to know anything to start — click
-      any letter on the circle to hear that key's chord, then watch its two
-      neighbors light up. Each neighbor sounds almost the same, because it's
-      only one note away from the key you picked. That's the entire reason
-      this diagram is drawn as a circle instead of a straight line: every
-      step around it is the smallest possible change.
+      New to music theory? You don't need to know any of it to start: click
+      a key on the outer ring for its major chord, or the inner ring for its
+      relative minor. Each key has its own colour, and its two neighbours on
+      the circle light up too — they share six of its seven scale notes,
+      which is why moving around this circle is always the smallest possible
+      step. Curious where the colours and the theory come from?
+      <a href="./theory.html">Read the theory page →</a>
     </p>
     <section class="circle-layout">
       <div class="circle-column">
         <div class="circle-wrapper" role="group" aria-label="Circle of fifths keys">
           {
-            positionedKeys.map((key) => (
+            positionedMajorKeys.map((key) => (
               <button
                 type="button"
                 class="key-button"
                 data-key={key.name}
                 data-index={key.index}
+                data-mode="major"
                 aria-pressed="false"
                 aria-label={
                   key.index === 6
                     ? "F sharp major, or G flat major"
                     : `${key.name} major`
                 }
-                style={`--btn-left: ${key.left}%; --btn-top: ${key.top}%;`}
+                style={`--btn-left: ${key.left}%; --btn-top: ${key.top}%; --key-color: ${key.color.css}; --key-text-color: ${key.color.textColor};`}
               >
                 {key.name}
+              </button>
+            ))
+          }
+          {
+            positionedMinorKeys.map((key) => (
+              <button
+                type="button"
+                class="key-button key-button-minor"
+                data-key={key.relativeMinorName}
+                data-index={key.index}
+                data-mode="minor"
+                aria-pressed="false"
+                aria-label={
+                  key.index === 6
+                    ? "D sharp minor, or E flat minor"
+                    : `${key.relativeMinorName} minor`
+                }
+                style={`--btn-left: ${key.left}%; --btn-top: ${key.top}%; --key-color: ${key.color.css}; --key-text-color: ${key.color.textColor};`}
+              >
+                {key.relativeMinorName}
               </button>
             ))
           }
@@ -77,6 +111,9 @@ const positionedKeys = KEYS.map((key, i) => {
             <span class="legend-swatch legend-swatch-subdominant" aria-hidden="true" />
             one step counter-clockwise (the "subdominant")
           </li>
+          <li class="legend-item">
+            outer ring = major, inner ring = its relative minor
+          </li>
         </ul>
       </div>
       <section class="key-info" data-testid="key-info" aria-live="polite">
@@ -87,6 +124,7 @@ const positionedKeys = KEYS.map((key, i) => {
         <p class="key-info__name" data-field="name"></p>
         <p class="key-info__scale" data-field="scale"></p>
         <p class="key-info__signature" data-field="signature"></p>
+        <p class="key-info__color" data-field="color-name"></p>
         <p class="key-info__dominant" data-field="dominant-diff"></p>
         <p class="key-info__subdominant" data-field="subdominant-diff"></p>
       </section>

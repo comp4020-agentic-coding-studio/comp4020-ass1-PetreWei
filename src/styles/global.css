@@ -67,9 +67,9 @@ a {
 }
 
 .key-button[aria-pressed="true"] {
-  border-color: #0b5fff;
-  background: #0b5fff;
-  color: #fff;
+  border-color: var(--key-color, #0b5fff);
+  background: var(--key-color, #0b5fff);
+  color: var(--key-text-color, #fff);
 }
 
 .key-button.neighbor-dominant {
@@ -80,6 +80,12 @@ a {
 .key-button.neighbor-subdominant {
   border-color: #059669;
   border-style: dashed;
+}
+
+.key-button-minor {
+  width: clamp(1.6rem, 6vw, 2.4rem);
+  height: clamp(1.6rem, 6vw, 2.4rem);
+  font-size: clamp(0.6rem, 1.8vw, 0.8rem);
 }
 
 .piano-keyboard {
@@ -168,6 +174,64 @@ a {
 
 .key-info p {
   margin: 0.5rem 0;
+}
+
+footer {
+  max-width: 64rem;
+  margin: 3rem auto 0;
+  padding: 1.5rem 2rem 2rem;
+  border-top: 1px solid #ccc;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+footer h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.references {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.references li {
+  margin: 0.25rem 0;
+}
+
+.theory-section {
+  margin-bottom: 2rem;
+}
+
+.theory-section h2 {
+  margin-bottom: 0.5rem;
+}
+
+.color-key-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.5rem;
+  padding: 0;
+  margin: 1rem 0;
+  list-style: none;
+}
+
+.color-key-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.color-key-swatch {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  border: 1px solid rgb(0 0 0 / 30%);
+  border-radius: 50%;
 }
 
 @media (width >= 900px) {

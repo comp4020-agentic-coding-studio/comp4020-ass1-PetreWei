@@ -1,0 +1,120 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { KEYS, getKeyColor } from "../lib/circleOfFifths.ts";
+
+const majorSwatches = KEYS.map((key) => ({
+  label: `${key.name} major`,
+  colorName: key.majorColorName,
+  css: getKeyColor(key.index, "major").css,
+}));
+
+const minorSwatches = KEYS.map((key) => ({
+  label: `${key.relativeMinorName} minor`,
+  colorName: key.minorColorName,
+  css: getKeyColor(key.index, "minor").css,
+}));
+---
+
+<Layout title="Theory — Chromesthesia Circle of Fifths">
+  <header>
+    <nav aria-label="Primary">
+      <a href="./">Home</a>
+      <a href="./theory.html">Theory</a>
+    </nav>
+  </header>
+  <main>
+    <h1>The theory behind the circle</h1>
+
+    <section class="theory-section">
+      <h2>What the circle of fifths actually shows</h2>
+      <p>
+        A "fifth" is just two notes seven semitones apart — one of the most
+        consonant intervals in music, which is why stacking fifths on top of
+        each other (C, then G a fifth above it, then D a fifth above that,
+        and so on) produces a sequence of keys that all sound closely
+        related to their neighbors. Keep stacking and you pass through all
+        12 possible keys before landing back on C — hence the circle.
+      </p>
+      <p>
+        Each step around the circle changes exactly one note in the scale:
+        G major is C major's scale with F swapped for F♯, D major swaps in
+        C♯ as well, and so on. That's also why key signatures (the sharps or
+        flats written at the start of a piece of sheet music) grow by
+        exactly one accidental per step clockwise, and shrink by one per
+        step counter-clockwise into flats.
+      </p>
+      <p>
+        Every major key also has a <strong>relative minor</strong>: a minor
+        key that shares its exact key signature. It sits at the same
+        position on the circle (shown here as the inner ring) and its
+        natural minor scale uses the same seven notes as its major, just
+        starting three semitones lower — for example A minor is C major's
+        seven notes, starting on A instead of C.
+      </p>
+    </section>
+
+    <section class="theory-section">
+      <h2>Chromesthesia: sound that comes with colour</h2>
+      <p>
+        Chromesthesia is a real, well-documented form of synesthesia in
+        which sound involuntarily triggers an experience of colour. It has a
+        genetic component, and the colour a person "sees" for a given note
+        or voice is highly personal and consistent for them over time — one
+        synesthete's C might always look red, while someone else's C is
+        purple. There's no single sound-to-colour mapping shared by everyone
+        with the condition, though researchers have found a general
+        tendency, even among non-synesthetes, to associate higher pitches
+        with lighter colours and lower pitches with darker ones.
+      </p>
+    </section>
+
+    <section class="theory-section">
+      <h2>Where this site's colours actually come from</h2>
+      <p>
+        The specific colour shown for each key on this site is <strong>not</strong>
+        measured chromesthesia data — no such single mapping exists, since
+        real synesthetes don't agree with each other. Instead it's borrowed
+        from artist "Mr Mars'" own deliberately designed
+        <a href="https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm">Musical Colour Wheel</a>,
+        built from his own decades of composing experience rather than
+        clinical measurement. His stated rules: sharp keys, which he
+        associates with brighter-sounding instruments like violin, get
+        bright hues; flat keys, associated with darker brass tones, get dark
+        hues; E major is fixed as the "brightest" key and anchors the wheel
+        as yellow; and each minor key gets a darker shade of its relative
+        major's hue, on the reasoning that "sadness is darker than
+        happiness." Mr Mars is explicit that he does not personally
+        experience chromesthesia and that his wheel is a designed system,
+        not a scientific one.
+      </p>
+      <p>
+        His page names a hue for each key but doesn't publish exact colour
+        codes, so the specific shade rendered on this site is this site's
+        own approximation: each major key's named hue is placed evenly
+        around a 360° colour wheel in the order he lists them, and each
+        relative minor reuses that same hue at lower saturation and
+        lightness — a literal reading of his "darker shade" rule.
+      </p>
+      <ul class="color-key-list">
+        {
+          majorSwatches.map((swatch) => (
+            <li class="color-key-item" style={`background: color-mix(in srgb, ${swatch.css} 18%, white);`}>
+              <span class="color-key-swatch" style={`background: ${swatch.css};`} />
+              {swatch.label}: {swatch.colorName}
+            </li>
+          ))
+        }
+      </ul>
+      <ul class="color-key-list">
+        {
+          minorSwatches.map((swatch) => (
+            <li class="color-key-item" style={`background: color-mix(in srgb, ${swatch.css} 18%, white);`}>
+              <span class="color-key-swatch" style={`background: ${swatch.css};`} />
+              {swatch.label}: {swatch.colorName}
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </main>
+</Layout>
