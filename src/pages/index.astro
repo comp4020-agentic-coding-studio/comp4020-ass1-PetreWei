@@ -11,9 +11,14 @@ const MINOR_LABEL_RADIUS_PERCENT = (MINOR_RING.inner + MINOR_RING.outer) / 2;
 // mid-ring position) so they never collide with the accidental badges just
 // outside the major ring at BADGE_RADIUS_PERCENT.
 const MAJOR_NUMERAL_RADIUS_PERCENT = MAJOR_RING.outer - 2;
-const MINOR_NUMERAL_RADIUS_PERCENT = MINOR_RING.inner + 2;
-const HOLE_RADIUS_PERCENT = 14;
+// Sits inside the hole/minor-ring gap, below MINOR_RING.inner, so the
+// numeral never sits on top of the coloured minor-ring band or its name.
+const MINOR_NUMERAL_RADIUS_PERCENT = 13;
+const HOLE_RADIUS_PERCENT = 11;
 const INNER_BORDER_RADIUS_PERCENT = (MINOR_RING.outer + MAJOR_RING.inner) / 2;
+// How many wedge-widths the unified neighbour-highlight sector spans:
+// subdominant + selected + dominant.
+const SECTOR_SPAN_WEDGES = 3;
 
 function polarXY(angleDeg: number, radiusPercent: number): [number, number] {
   const a = (angleDeg * Math.PI) / 180;
@@ -47,11 +52,34 @@ function wedgePolygon(index: number, innerRadius: number, outerRadius: number, g
   return `polygon(${[...outer, ...inner].join(", ")})`;
 }
 
-// The identical arc geometry as wedgePolygon, but as an SVG path (numeric,
-// viewBox 0-100) so a neighbour highlight can stroke exactly the wedge's own
-// sector outline — a plain CSS border/outline doesn't follow a clip-path shape.
-function wedgeBorderPath(index: number, innerRadius: number, outerRadius: number, gapDeg = 2) {
-  const { n, outerAngle, innerAngle } = wedgeArcs(index, gapDeg);
+// The identical arc geometry as sectorPolygon's arcs, but spanning several
+// wedge-widths centred on `centerIndex` rather than just one, so the
+// neighbour-highlight outline can trace one continuous sector rather than
+// per-wedge borders.
+function sectorArcs(centerIndex: number, spanWedges: number, gapDeg: number) {
+  const step = 360 / KEYS.length;
+  const start = centerIndex * step - (spanWedges * step) / 2 + gapDeg / 2;
+  const end = centerIndex * step + (spanWedges * step) / 2 - gapDeg / 2;
+  const n = 24;
+  return {
+    n,
+    outerAngle: (i: number) => start + ((end - start) * i) / n,
+    innerAngle: (i: number) => end - ((end - start) * i) / n,
+  };
+}
+
+// One closed SVG path (numeric, viewBox 0-100) spanning the selected key and
+// its two neighbours, from the minor ring's inner edge to the major ring's
+// outer edge, so a single stroke can outline that whole 6-cell region
+// instead of six separate per-wedge borders.
+function sectorBorderPath(
+  centerIndex: number,
+  innerRadius: number,
+  outerRadius: number,
+  spanWedges = SECTOR_SPAN_WEDGES,
+  gapDeg = 2,
+) {
+  const { n, outerAngle, innerAngle } = sectorArcs(centerIndex, spanWedges, gapDeg);
   const outer = Array.from({ length: n + 1 }, (_, i) => polarXY(outerAngle(i), outerRadius));
   const inner = Array.from({ length: n + 1 }, (_, i) => polarXY(innerAngle(i), innerRadius));
   const [first, ...rest] = [...outer, ...inner];
@@ -72,6 +100,16 @@ function minorLabel(relativeMinorName: string) {
   return relativeMinorName.split(" / ").map((name) => `${name}m`).join(" / ");
 }
 
+// Splits an enharmonic pair like "F♯ / G♭" into ["F♯", "G♭"] so the two
+// spellings can render as two spans with no "/" between them (avoids
+// overflow at the single enharmonic wedge); returns null for every other,
+// single-spelling key name.
+function enharmonicParts(name: string): [string, string] | null {
+  if (!name.includes(" / ")) return null;
+  const [sharp, flat] = name.split(" / ");
+  return [sharp, flat];
+}
+
 const positionedMajorKeys = KEYS.map((key) => {
   const numeralPos = withPosition(key, MAJOR_NUMERAL_RADIUS_PERCENT);
   return {
@@ -80,7 +118,7 @@ const positionedMajorKeys = KEYS.map((key) => {
     numeralTop: numeralPos.top,
     color: getKeyColor(key.index, "major"),
     clipPath: wedgePolygon(key.index, MAJOR_RING.inner, MAJOR_RING.outer),
-    borderPath: wedgeBorderPath(key.index, MAJOR_RING.inner, MAJOR_RING.outer),
+    nameParts: enharmonicParts(key.name),
   };
 });
 
@@ -92,13 +130,18 @@ const positionedMinorKeys = KEYS.map((key) => {
     numeralTop: numeralPos.top,
     color: getKeyColor(key.index, "minor"),
     clipPath: wedgePolygon(key.index, MINOR_RING.inner, MINOR_RING.outer),
-    borderPath: wedgeBorderPath(key.index, MINOR_RING.inner, MINOR_RING.outer),
+    nameParts: enharmonicParts(minorLabel(key.relativeMinorName)),
   };
 });
 
 const positionedBadges = KEYS.map((key) => ({
   ...withPosition(key, BADGE_RADIUS_PERCENT),
   text: getAccidentalBadgeText(key),
+}));
+
+const positionedSectors = KEYS.map((key) => ({
+  index: key.index,
+  path: sectorBorderPath(key.index, MINOR_RING.inner, MAJOR_RING.outer),
 }));
 
 const base = import.meta.env.BASE_URL.endsWith("/")
@@ -144,16 +187,23 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                 }
                 style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
               >
-                <svg class="wedge-border" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                  <path d={key.borderPath} />
-                </svg>
                 <span
                   class="wedge-numeral"
                   data-testid="wedge-numeral"
                   style={`--label-left: ${key.numeralLeft}%; --label-top: ${key.numeralTop}%;`}
                 />
-                <span class="wedge-name" style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}>
-                  {key.name}
+                <span
+                  class={`wedge-name ${key.nameParts ? "wedge-name-enharmonic" : ""}`}
+                  style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}
+                >
+                  {key.nameParts ? (
+                    <>
+                      <span class="wedge-name-part">{key.nameParts[0]}</span>
+                      <span class="wedge-name-part">{key.nameParts[1]}</span>
+                    </>
+                  ) : (
+                    key.name
+                  )}
                 </span>
               </button>
             ))
@@ -174,18 +224,38 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                 }
                 style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
               >
-                <svg class="wedge-border" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                  <path d={key.borderPath} />
-                </svg>
                 <span
                   class="wedge-numeral"
                   data-testid="wedge-numeral"
                   style={`--label-left: ${key.numeralLeft}%; --label-top: ${key.numeralTop}%;`}
                 />
-                <span class="wedge-name" style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}>
-                  {minorLabel(key.relativeMinorName)}
+                <span
+                  class={`wedge-name ${key.nameParts ? "wedge-name-enharmonic" : ""}`}
+                  style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}
+                >
+                  {key.nameParts ? (
+                    <>
+                      <span class="wedge-name-part">{key.nameParts[0]}</span>
+                      <span class="wedge-name-part">{key.nameParts[1]}</span>
+                    </>
+                  ) : (
+                    minorLabel(key.relativeMinorName)
+                  )}
                 </span>
               </button>
+            ))
+          }
+          {
+            positionedSectors.map((sector) => (
+              <svg
+                class="sector-border"
+                data-sector-index={sector.index}
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path d={sector.path} />
+              </svg>
             ))
           }
           {

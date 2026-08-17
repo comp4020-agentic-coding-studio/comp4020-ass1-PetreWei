@@ -34,6 +34,10 @@ const wedgeNumerals = Array.from(
   document.querySelectorAll<HTMLElement>('[data-testid="wedge-numeral"]'),
 );
 
+const sectorBorders = Array.from(
+  document.querySelectorAll<SVGElement>(".sector-border"),
+);
+
 const happyBirthdayButton = document.querySelector<HTMLButtonElement>(
   '[data-testid="happy-birthday-button"]',
 );
@@ -94,6 +98,24 @@ function playNotes(notes: TriadNote[], stepSeconds: number): void {
 
 let pendingHighlightTimeouts: ReturnType<typeof setTimeout>[] = [];
 
+// A transposed melody's exact octave can occasionally fall outside the
+// on-screen keyboard's fixed 2-octave window (it's the correct pitch, just
+// higher/lower than this display goes) — the audio always plays the exact
+// note regardless, but for the highlight we fall back to whichever key on
+// screen shares the same pitch class, closest in octave to the real one.
+function findPianoKey(pitchClass: number, octave: number): HTMLElement | undefined {
+  const exact = pianoKeys.find(
+    (key) => Number(key.dataset.pitchClass) === pitchClass && Number(key.dataset.octave) === octave,
+  );
+  if (exact) return exact;
+  return pianoKeys
+    .filter((key) => Number(key.dataset.pitchClass) === pitchClass)
+    .sort(
+      (a, b) =>
+        Math.abs(Number(a.dataset.octave) - octave) - Math.abs(Number(b.dataset.octave) - octave),
+    )[0];
+}
+
 function highlightPianoKeys(notes: TriadNote[], stepSeconds: number): void {
   for (const timeoutId of pendingHighlightTimeouts) {
     clearTimeout(timeoutId);
@@ -107,12 +129,7 @@ function highlightPianoKeys(notes: TriadNote[], stepSeconds: number): void {
   notes.forEach((note, i) => {
     const timeoutId = setTimeout(
       () => {
-        const pianoKey = pianoKeys.find(
-          (key) =>
-            Number(key.dataset.pitchClass) === note.pitchClass &&
-            Number(key.dataset.octave) === note.octave,
-        );
-        pianoKey?.classList.add("piano-key-active");
+        findPianoKey(note.pitchClass, note.octave)?.classList.add("piano-key-active");
       },
       i * stepSeconds * 1000,
     );
@@ -120,7 +137,28 @@ function highlightPianoKeys(notes: TriadNote[], stepSeconds: number): void {
   });
 }
 
+let activeMelodyOscillators: OscillatorNode[] = [];
+let pendingMelodyTimeouts: ReturnType<typeof setTimeout>[] = [];
+
+// Playing any other key/chord/note, or restarting Happy Birthday itself,
+// interrupts a currently-playing Happy Birthday autoplay: clearing the
+// highlight timeouts alone isn't enough, since the melody's oscillators
+// are scheduled ahead of time and keep sounding on their own schedule
+// unless stopped explicitly.
+function stopHappyBirthday(): void {
+  for (const timeoutId of pendingMelodyTimeouts) {
+    clearTimeout(timeoutId);
+  }
+  pendingMelodyTimeouts = [];
+
+  for (const oscillator of activeMelodyOscillators) {
+    oscillator.stop();
+  }
+  activeMelodyOscillators = [];
+}
+
 function playAndHighlight(rootPitchClass: number, quality: ChordQuality): void {
+  stopHappyBirthday();
   const triadNotes = getTriadNotes(rootPitchClass, quality);
   const notes = [triadNotes.root, triadNotes.third, triadNotes.fifth, triadNotes.doubledRoot];
   const stepSeconds = stepSecondsForMode(playbackMode);
@@ -129,6 +167,7 @@ function playAndHighlight(rootPitchClass: number, quality: ChordQuality): void {
 }
 
 function playSingleNote(pitchClass: number, octave: number): void {
+  stopHappyBirthday();
   const notes = [{ pitchClass, octave }];
   highlightPianoKeys(notes, 0);
   playNotes(notes, 0);
@@ -161,19 +200,13 @@ function playMelody(sequence: HappyBirthdayNote[]): void {
     gain.connect(context.destination);
     oscillator.start(startTime);
     oscillator.stop(startTime + durationSeconds + 0.02);
+    activeMelodyOscillators.push(oscillator);
 
     elapsedBeats += note.beats;
   }
 }
 
-let pendingMelodyTimeouts: ReturnType<typeof setTimeout>[] = [];
-
 function highlightMelody(sequence: HappyBirthdayNote[]): void {
-  for (const timeoutId of pendingMelodyTimeouts) {
-    clearTimeout(timeoutId);
-  }
-  pendingMelodyTimeouts = [];
-
   for (const pianoKey of pianoKeys) {
     pianoKey.classList.remove("piano-key-active");
   }
@@ -182,11 +215,7 @@ function highlightMelody(sequence: HappyBirthdayNote[]): void {
   for (const note of sequence) {
     const startMs = elapsedBeats * HAPPY_BIRTHDAY_BEAT_SECONDS * 1000;
     const endMs = (elapsedBeats + note.beats) * HAPPY_BIRTHDAY_BEAT_SECONDS * 1000;
-    const pianoKey = pianoKeys.find(
-      (key) =>
-        Number(key.dataset.pitchClass) === note.pitchClass &&
-        Number(key.dataset.octave) === note.octave,
-    );
+    const pianoKey = findPianoKey(note.pitchClass, note.octave);
 
     if (pianoKey) {
       pendingMelodyTimeouts.push(
@@ -203,6 +232,7 @@ function highlightMelody(sequence: HappyBirthdayNote[]): void {
 
 function playHappyBirthday(): void {
   if (selectedIndex === null || selectedQuality === null) return;
+  stopHappyBirthday();
   const sequence = getHappyBirthdaySequence(KEYS[selectedIndex], selectedQuality);
   highlightMelody(sequence);
   playMelody(sequence);
@@ -229,6 +259,10 @@ function updateSelection(index: number, quality: KeyQuality): void {
       "neighbor-subdominant",
       buttonIndex === subdominant && buttonQuality === quality,
     );
+  }
+
+  for (const sector of sectorBorders) {
+    sector.classList.toggle("active", Number(sector.dataset.sectorIndex) === index);
   }
 
   for (const numeral of wedgeNumerals) {

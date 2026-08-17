@@ -161,26 +161,48 @@ export function getTriadPitchClasses(
   };
 }
 
-// Single source of truth for exactly which note (pitch class + octave) each
-// triad tone is. The root always sits in octave 4; the third/fifth bump up
-// to octave 5 whenever stacking their interval on top of the tonic would
-// otherwise wrap past B, so the triad always ascends root < third < fifth.
+// The on-screen keyboard is rotated to start on G rather than C (see
+// PIANO_KEYS below), so "does stacking this interval wrap into the
+// keyboard's next block" has to be judged against a G-anchored ordering
+// (G=0 ... F♯=11), not raw pitch-class order from C.
+function keyboardBlockPosition(pitchClass: number): number {
+  return (pitchClass + 5) % 12;
+}
+
+// Each rendered block's G–B half sits one register below its own C–F♯ half
+// (e.g. block "4" is G4–B4 followed by C5–F♯5) — this mirrors PIANO_KEYS's
+// own octaveOffset so every pitch class's "home" register matches the key
+// it's actually drawn on.
+function keyboardBaseOctave(pitchClass: number): number {
+  return pitchClass < 7 ? 5 : 4;
+}
+
+// Single source of truth for exactly which note (pitch class + octave) a
+// tonic-relative interval lands on. Bumps up a register each time the
+// interval carries past the keyboard's own G block boundary (not past C),
+// so any note built this way — triad tone or melody note — is guaranteed to
+// exist among PIANO_KEYS and the triad/melody always ascends in pitch.
+function keyboardOctaveFor(tonicPitchClass: number, semitoneOffset: number): TriadNote {
+  const pitchClass = (((tonicPitchClass + semitoneOffset) % 12) + 12) % 12;
+  const registerBumps = Math.floor(
+    (keyboardBlockPosition(tonicPitchClass) + semitoneOffset) / 12,
+  );
+  return { pitchClass, octave: keyboardBaseOctave(pitchClass) + registerBumps };
+}
+
 // Both audio playback and piano-key highlighting consume this same data, so
 // they can never disagree about what note is actually sounding.
 export function getTriadNotes(
   tonicPitchClass: number,
   quality: ChordQuality = "major",
 ): TriadNotes {
-  const { root, third, fifth } = getTriadPitchClasses(tonicPitchClass, quality);
   const thirdInterval = quality === "major" ? 4 : 3;
   const fifthInterval = quality === "diminished" ? 6 : 7;
-  const thirdOctave = tonicPitchClass + thirdInterval >= 12 ? 5 : 4;
-  const fifthOctave = tonicPitchClass + fifthInterval >= 12 ? 5 : 4;
   return {
-    root: { pitchClass: root, octave: 4 },
-    third: { pitchClass: third, octave: thirdOctave },
-    fifth: { pitchClass: fifth, octave: fifthOctave },
-    doubledRoot: { pitchClass: root, octave: 5 },
+    root: keyboardOctaveFor(tonicPitchClass, 0),
+    third: keyboardOctaveFor(tonicPitchClass, thirdInterval),
+    fifth: keyboardOctaveFor(tonicPitchClass, fifthInterval),
+    doubledRoot: keyboardOctaveFor(tonicPitchClass, 12),
   };
 }
 
@@ -196,37 +218,43 @@ export function getTriadFrequencies(
   };
 }
 
-// One chromatic octave's worth of key shapes. whiteIndex doubles as the
-// horizontal layout coordinate: 0-6 for white keys. A black key's whiteIndex
-// is the *next* white key's own integer index (not a fractional midpoint of
-// the previous one) so it lands exactly on the boundary between two white
-// keys, where a real black key sits — not centered inside one.
-const PIANO_OCTAVE_TEMPLATE: readonly Omit<PianoKeyInfo, "octave">[] = [
-  { pitchClass: 0, label: "C", isBlack: false, whiteIndex: 0 },
-  { pitchClass: 1, label: "C♯", flatLabel: "D♭", isBlack: true, whiteIndex: 1 },
-  { pitchClass: 2, label: "D", isBlack: false, whiteIndex: 1 },
-  { pitchClass: 3, label: "D♯", flatLabel: "E♭", isBlack: true, whiteIndex: 2 },
-  { pitchClass: 4, label: "E", isBlack: false, whiteIndex: 2 },
-  { pitchClass: 5, label: "F", isBlack: false, whiteIndex: 3 },
-  { pitchClass: 6, label: "F♯", flatLabel: "G♭", isBlack: true, whiteIndex: 4 },
-  { pitchClass: 7, label: "G", isBlack: false, whiteIndex: 4 },
-  { pitchClass: 8, label: "G♯", flatLabel: "A♭", isBlack: true, whiteIndex: 5 },
-  { pitchClass: 9, label: "A", isBlack: false, whiteIndex: 5 },
-  { pitchClass: 10, label: "A♯", flatLabel: "B♭", isBlack: true, whiteIndex: 6 },
-  { pitchClass: 11, label: "B", isBlack: false, whiteIndex: 6 },
+// One chromatic block's worth of key shapes, rotated to start on G rather
+// than C. whiteIndex doubles as the horizontal layout coordinate: 0-6 for
+// white keys within a block. A black key's whiteIndex is the *next* white
+// key's own integer index (not a fractional midpoint of the previous one)
+// so it lands exactly on the boundary between two white keys, where a real
+// black key sits — not centered inside one. Because the block starts on G,
+// it spans parts of two real scientific-pitch octaves: octaveOffset marks
+// which half a key belongs to (0 for G–B, 1 for C–F♯).
+const PIANO_OCTAVE_TEMPLATE: readonly (Omit<PianoKeyInfo, "octave"> & {
+  readonly octaveOffset: 0 | 1;
+})[] = [
+  { pitchClass: 7, label: "G", isBlack: false, whiteIndex: 0, octaveOffset: 0 },
+  { pitchClass: 8, label: "G♯", flatLabel: "A♭", isBlack: true, whiteIndex: 1, octaveOffset: 0 },
+  { pitchClass: 9, label: "A", isBlack: false, whiteIndex: 1, octaveOffset: 0 },
+  { pitchClass: 10, label: "A♯", flatLabel: "B♭", isBlack: true, whiteIndex: 2, octaveOffset: 0 },
+  { pitchClass: 11, label: "B", isBlack: false, whiteIndex: 2, octaveOffset: 0 },
+  { pitchClass: 0, label: "C", isBlack: false, whiteIndex: 3, octaveOffset: 1 },
+  { pitchClass: 1, label: "C♯", flatLabel: "D♭", isBlack: true, whiteIndex: 4, octaveOffset: 1 },
+  { pitchClass: 2, label: "D", isBlack: false, whiteIndex: 4, octaveOffset: 1 },
+  { pitchClass: 3, label: "D♯", flatLabel: "E♭", isBlack: true, whiteIndex: 5, octaveOffset: 1 },
+  { pitchClass: 4, label: "E", isBlack: false, whiteIndex: 5, octaveOffset: 1 },
+  { pitchClass: 5, label: "F", isBlack: false, whiteIndex: 6, octaveOffset: 1 },
+  { pitchClass: 6, label: "F♯", flatLabel: "G♭", isBlack: true, whiteIndex: 7, octaveOffset: 1 },
 ];
 
-// Octave 4 holds the root of every triad; 5 covers the third/fifth's
-// occasional wrap and the doubled root.
-export const PIANO_OCTAVES: readonly number[] = [4, 5];
+// The two rendered blocks: block 0 is G4–B4 then C5–F♯5, block 1 is
+// G5–B5 then C6–F♯6 — matching keyboardBaseOctave/keyboardOctaveFor above.
+const PIANO_BASE_OCTAVES: readonly number[] = [4, 5];
 const WHITE_KEYS_PER_OCTAVE = PIANO_OCTAVE_TEMPLATE.filter((k) => !k.isBlack).length;
 
-export const PIANO_KEYS: readonly PianoKeyInfo[] = PIANO_OCTAVES.flatMap((octave, octaveOffset) =>
-  PIANO_OCTAVE_TEMPLATE.map((key) => ({
-    ...key,
-    octave,
-    whiteIndex: key.whiteIndex + octaveOffset * WHITE_KEYS_PER_OCTAVE,
-  })),
+export const PIANO_KEYS: readonly PianoKeyInfo[] = PIANO_BASE_OCTAVES.flatMap(
+  (baseOctave, blockIndex) =>
+    PIANO_OCTAVE_TEMPLATE.map(({ octaveOffset, ...key }) => ({
+      ...key,
+      octave: baseOctave + octaveOffset,
+      whiteIndex: key.whiteIndex + blockIndex * WHITE_KEYS_PER_OCTAVE,
+    })),
 );
 
 export function formatKeySignature(key: KeyInfo): string {
@@ -371,42 +399,69 @@ export function getKeyColor(index: number, quality: KeyQuality): KeyColor {
 
 export const NATURAL_MINOR_SCALE_INTERVALS: readonly number[] = [0, 2, 3, 5, 7, 8, 10];
 
-// "Happy birthday to you" as scale degrees (tonic, tonic, supertonic, tonic,
-// subdominant, mediant) rather than fixed pitches, so the exact same
-// melodic shape transposes into any key — major or natural minor — to
-// demonstrate how the same tune reads differently in each key's colour.
-export const HAPPY_BIRTHDAY_DEGREES: readonly number[] = [0, 0, 1, 0, 3, 2];
-
-export function getHappyBirthdayNotes(key: KeyInfo, quality: KeyQuality): TriadNote[] {
-  const tonicPitchClass =
-    quality === "major" ? key.tonicPitchClass : getRelativeMinorTonicPitchClass(key.tonicPitchClass);
-  const intervals = quality === "major" ? MAJOR_SCALE_INTERVALS : NATURAL_MINOR_SCALE_INTERVALS;
-  return HAPPY_BIRTHDAY_DEGREES.map((degree) => {
-    const rawPitch = tonicPitchClass + intervals[degree];
-    return {
-      pitchClass: rawPitch % 12,
-      octave: rawPitch >= 12 ? 5 : 4,
-    };
-  });
+interface HappyBirthdayNoteSpec {
+  readonly degree: number;
+  readonly octaveAbove: 0 | 1;
+  readonly beats: number;
 }
 
-// The tune's actual rhythm, in quarter-note beats aligned to HAPPY_BIRTHDAY_DEGREES:
-// the first two notes are the short syncopated pickup ("Hap-py"), the middle
-// three are even quarter notes, and the last is held twice as long.
-export const HAPPY_BIRTHDAY_BEATS: readonly number[] = [0.5, 0.5, 1, 1, 1, 2];
-
-// "Happy Birthday to You" has 4 sung lines; this repeats the same transposed
-// phrase 4 times so the demo plays the whole song, not just one line of it.
-export const HAPPY_BIRTHDAY_SENTENCE_COUNT = 4;
+// "Happy Birthday to You"'s 4 sung lines, transcribed as scale degrees
+// (0 = tonic ... 6 = leading tone, indexing MAJOR_SCALE_INTERVALS /
+// NATURAL_MINOR_SCALE_INTERVALS) plus which octave above the tonic's own
+// octave each note sits, so the same shape transposes into any key — major
+// or natural minor. In C major this reads: line 1 "G G A G C(up) B" (held),
+// line 2 "G G A G D(up) C(up)" (held), line 3 "G G G(up) E(up) C(up) B A"
+// (held), line 4 "F F E C D C" (held) — the real tune in full, no line
+// repeated.
+export const HAPPY_BIRTHDAY_LINES: readonly (readonly HappyBirthdayNoteSpec[])[] = [
+  [
+    { degree: 4, octaveAbove: 0, beats: 0.5 },
+    { degree: 4, octaveAbove: 0, beats: 0.5 },
+    { degree: 5, octaveAbove: 0, beats: 1 },
+    { degree: 4, octaveAbove: 0, beats: 1 },
+    { degree: 0, octaveAbove: 1, beats: 1 },
+    { degree: 6, octaveAbove: 0, beats: 2 },
+  ],
+  [
+    { degree: 4, octaveAbove: 0, beats: 0.5 },
+    { degree: 4, octaveAbove: 0, beats: 0.5 },
+    { degree: 5, octaveAbove: 0, beats: 1 },
+    { degree: 4, octaveAbove: 0, beats: 1 },
+    { degree: 1, octaveAbove: 1, beats: 1 },
+    { degree: 0, octaveAbove: 1, beats: 2 },
+  ],
+  [
+    { degree: 4, octaveAbove: 0, beats: 0.5 },
+    { degree: 4, octaveAbove: 0, beats: 0.5 },
+    { degree: 4, octaveAbove: 1, beats: 1 },
+    { degree: 2, octaveAbove: 1, beats: 1 },
+    { degree: 0, octaveAbove: 1, beats: 1 },
+    { degree: 6, octaveAbove: 0, beats: 1 },
+    { degree: 5, octaveAbove: 0, beats: 2 },
+  ],
+  [
+    { degree: 3, octaveAbove: 0, beats: 0.5 },
+    { degree: 3, octaveAbove: 0, beats: 0.5 },
+    { degree: 2, octaveAbove: 0, beats: 1 },
+    { degree: 0, octaveAbove: 0, beats: 1 },
+    { degree: 1, octaveAbove: 0, beats: 1 },
+    { degree: 0, octaveAbove: 0, beats: 2 },
+  ],
+];
 
 export interface HappyBirthdayNote extends TriadNote {
   readonly beats: number;
 }
 
+// Flattens all 4 lines into one playable sequence, resolving each note's
+// (pitchClass, octave) with the same keyboardOctaveFor helper triads use —
+// so every melody note is guaranteed to exist among PIANO_KEYS too.
 export function getHappyBirthdaySequence(key: KeyInfo, quality: KeyQuality): HappyBirthdayNote[] {
-  const phrase = getHappyBirthdayNotes(key, quality).map((note, i) => ({
-    ...note,
-    beats: HAPPY_BIRTHDAY_BEATS[i],
+  const tonicPitchClass =
+    quality === "major" ? key.tonicPitchClass : getRelativeMinorTonicPitchClass(key.tonicPitchClass);
+  const intervals = quality === "major" ? MAJOR_SCALE_INTERVALS : NATURAL_MINOR_SCALE_INTERVALS;
+  return HAPPY_BIRTHDAY_LINES.flat().map((note) => ({
+    ...keyboardOctaveFor(tonicPitchClass, intervals[note.degree] + note.octaveAbove * 12),
+    beats: note.beats,
   }));
-  return Array.from({ length: HAPPY_BIRTHDAY_SENTENCE_COUNT }, () => phrase).flat();
 }

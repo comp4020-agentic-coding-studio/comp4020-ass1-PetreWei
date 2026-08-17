@@ -3,13 +3,11 @@ import { resolve } from "node:path";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import {
-  HAPPY_BIRTHDAY_BEATS,
-  HAPPY_BIRTHDAY_SENTENCE_COUNT,
+  HAPPY_BIRTHDAY_LINES,
   KEYS,
   PIANO_KEYS,
   getAccidentalBadgeText,
   getDiatonicChords,
-  getHappyBirthdayNotes,
   getHappyBirthdaySequence,
   getKeyColor,
   getKeyColorHue,
@@ -65,10 +63,12 @@ describe("circle of fifths: pure logic", () => {
   });
 
   it("computes standard concert-pitch triad frequencies for C major", () => {
+    // On the G-rotated keyboard, C's own register is octave 5 (one octave
+    // above the textbook octave-4 C major triad).
     const { root, third, fifth } = getTriadFrequencies(0);
-    expect(root).toBeCloseTo(261.63, 1);
-    expect(third).toBeCloseTo(329.63, 1);
-    expect(fifth).toBeCloseTo(392.0, 1);
+    expect(root).toBeCloseTo(523.25, 1);
+    expect(third).toBeCloseTo(659.26, 1);
+    expect(fifth).toBeCloseTo(784.0, 1);
   });
 
   it("keeps the triad ascending across an octave wrap (B major)", () => {
@@ -100,16 +100,20 @@ describe("circle of fifths: pure logic", () => {
     });
   });
 
-  it("lays out 2 chromatic octaves for the on-screen keyboard", () => {
+  it("lays out 2 chromatic octaves for the on-screen keyboard, rotated to start on G", () => {
     expect(PIANO_KEYS.length).toBe(24);
-    const oneOctave = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    const rotatedOctave = [7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6];
     expect(PIANO_KEYS.map((k) => k.pitchClass)).toEqual([
-      ...oneOctave,
-      ...oneOctave,
+      ...rotatedOctave,
+      ...rotatedOctave,
     ]);
+    // Each block starts at G, so its G–B half sits a register below its own
+    // C–F♯ half: G4–B4, C5–F♯5, then G5–B5, C6–F♯6.
     expect(PIANO_KEYS.map((k) => k.octave)).toEqual([
-      ...Array(12).fill(4),
-      ...Array(12).fill(5),
+      ...Array(5).fill(4),
+      ...Array(7).fill(5),
+      ...Array(5).fill(5),
+      ...Array(7).fill(6),
     ]);
     expect(PIANO_KEYS.filter((k) => k.isBlack).length).toBe(10);
   });
@@ -117,35 +121,43 @@ describe("circle of fifths: pure logic", () => {
   it("centers every black key on the boundary with the white key right after it, not inside one", () => {
     PIANO_KEYS.forEach((key, i) => {
       if (!key.isBlack) return;
+      // The keyboard is rotated to start on G, so it now ends on the black
+      // F♯ key — the one black key with no white key after it at all.
+      if (i + 1 >= PIANO_KEYS.length) return;
       const nextWhiteKey = PIANO_KEYS[i + 1];
       expect(nextWhiteKey.isBlack).toBe(false);
       expect(nextWhiteKey.whiteIndex).toBe(key.whiteIndex);
     });
   });
 
-  it("computes each triad note's exact pitch class and octave (root always octave 4)", () => {
+  it("computes each triad note's exact pitch class and octave on the G-rotated keyboard", () => {
+    // C major: C's own register on this keyboard is 5 (it sits in a block's
+    // upper C–F♯ half), so root, third (E) and fifth (G) all land there.
     expect(getTriadNotes(0)).toEqual({
-      root: { pitchClass: 0, octave: 4 },
-      third: { pitchClass: 4, octave: 4 },
-      fifth: { pitchClass: 7, octave: 4 },
-      doubledRoot: { pitchClass: 0, octave: 5 },
+      root: { pitchClass: 0, octave: 5 },
+      third: { pitchClass: 4, octave: 5 },
+      fifth: { pitchClass: 7, octave: 5 },
+      doubledRoot: { pitchClass: 0, octave: 6 },
     });
 
-    // F major: fifth (C) wraps up to octave 5, third (A) doesn't.
+    // F major: root, third (A) and fifth (C) all share F's own register.
     const fMajor = getTriadNotes(5);
-    expect(fMajor.root).toEqual({ pitchClass: 5, octave: 4 });
-    expect(fMajor.third).toEqual({ pitchClass: 9, octave: 4 });
-    expect(fMajor.fifth).toEqual({ pitchClass: 0, octave: 5 });
+    expect(fMajor.root).toEqual({ pitchClass: 5, octave: 5 });
+    expect(fMajor.third).toEqual({ pitchClass: 9, octave: 5 });
+    expect(fMajor.fifth).toEqual({ pitchClass: 0, octave: 6 });
 
-    // A♭ major: both third (C) and fifth (E♭) wrap up to octave 5.
+    // A♭ major: root stays in the G–B half (octave 4); third (C) and fifth
+    // (E♭) land in that block's upper C–F♯ half.
     const abMajor = getTriadNotes(8);
+    expect(abMajor.root).toEqual({ pitchClass: 8, octave: 4 });
     expect(abMajor.third).toEqual({ pitchClass: 0, octave: 5 });
     expect(abMajor.fifth).toEqual({ pitchClass: 3, octave: 5 });
 
-    // D♭ major: neither third (F) nor fifth (A♭) wraps.
+    // D♭ major: root, third (F) and fifth (A♭) all share the same register.
     const dbMajor = getTriadNotes(1);
-    expect(dbMajor.third).toEqual({ pitchClass: 5, octave: 4 });
-    expect(dbMajor.fifth).toEqual({ pitchClass: 8, octave: 4 });
+    expect(dbMajor.root).toEqual({ pitchClass: 1, octave: 5 });
+    expect(dbMajor.third).toEqual({ pitchClass: 5, octave: 5 });
+    expect(dbMajor.fifth).toEqual({ pitchClass: 8, octave: 5 });
 
     // A minor: still ascends root < third < fifth in frequency.
     const aMinor = getTriadNotes(9, "minor");
@@ -154,6 +166,43 @@ describe("circle of fifths: pure logic", () => {
     );
     expect(freqs[0]).toBeLessThan(freqs[1]);
     expect(freqs[1]).toBeLessThan(freqs[2]);
+  });
+
+  it("places every triad note (root/third/fifth/doubled-root) exactly on the rendered keyboard", () => {
+    // A triad's widest span (root to doubled-root) is exactly 1 octave, which
+    // always fits somewhere in the keyboard's 2-octave window, in any key.
+    const isOnKeyboard = (note: { pitchClass: number; octave: number }) =>
+      PIANO_KEYS.some((k) => k.pitchClass === note.pitchClass && k.octave === note.octave);
+
+    for (const key of KEYS) {
+      for (const quality of ["major", "minor"] as const) {
+        const tonicPitchClass =
+          quality === "major" ? key.tonicPitchClass : getRelativeMinorTonicPitchClass(key.tonicPitchClass);
+        const triad = getTriadNotes(tonicPitchClass, quality);
+        expect(isOnKeyboard(triad.root)).toBe(true);
+        expect(isOnKeyboard(triad.third)).toBe(true);
+        expect(isOnKeyboard(triad.fifth)).toBe(true);
+        expect(isOnKeyboard(triad.doubledRoot)).toBe(true);
+      }
+    }
+  });
+
+  it("keeps every Happy Birthday note's pitch class available on the keyboard, even when its exact octave sits outside the 2-octave window", () => {
+    // The full song spans nearly 2 octaves relative to the tonic, so for keys
+    // whose tonic already sits high in its own register, the exact transposed
+    // octave of the highest notes can fall above the keyboard's fixed G4–F♯6
+    // range — the pitch is still musically correct (and still played exactly,
+    // since audio doesn't depend on the on-screen keys), it just means the
+    // client script's key-highlight falls back to the nearest available
+    // octave of the same pitch class rather than an exact match.
+    const pitchClassesOnKeyboard = new Set(PIANO_KEYS.map((k) => k.pitchClass));
+    for (const key of KEYS) {
+      for (const quality of ["major", "minor"] as const) {
+        for (const note of getHappyBirthdaySequence(key, quality)) {
+          expect(pitchClassesOnKeyboard.has(note.pitchClass)).toBe(true);
+        }
+      }
+    }
   });
 
   it("derives each relative minor's tonic a minor third below its major", () => {
@@ -276,52 +325,44 @@ describe("circle of fifths: pure logic", () => {
     expect(getAccidentalBadgeText(byName("F"))).toBe("♭");
   });
 
-  it("transposes 'Happy Birthday' into any major key as scale degrees (C major: C C D C F E)", () => {
-    const cMajor = KEYS.find((k) => k.name === "C")!;
-    expect(getHappyBirthdayNotes(cMajor, "major")).toEqual([
-      { pitchClass: 0, octave: 4 },
-      { pitchClass: 0, octave: 4 },
-      { pitchClass: 2, octave: 4 },
-      { pitchClass: 0, octave: 4 },
-      { pitchClass: 5, octave: 4 },
-      { pitchClass: 4, octave: 4 },
-    ]);
-  });
+  it("plays all 4 distinct sung lines of 'Happy Birthday' with no repetition (25 notes total)", () => {
+    expect(HAPPY_BIRTHDAY_LINES.length).toBe(4);
+    expect(HAPPY_BIRTHDAY_LINES.map((line) => line.length)).toEqual([6, 6, 7, 6]);
+    const totalNotes = HAPPY_BIRTHDAY_LINES.reduce((sum, line) => sum + line.length, 0);
+    expect(totalNotes).toBe(25);
 
-  it("transposes 'Happy Birthday' into any minor key using the natural minor scale (C minor: C C D C F E♭)", () => {
-    const ebMajor = KEYS.find((k) => k.name === "E♭")!;
-    expect(getHappyBirthdayNotes(ebMajor, "minor")).toEqual([
-      { pitchClass: 0, octave: 4 },
-      { pitchClass: 0, octave: 4 },
-      { pitchClass: 2, octave: 4 },
-      { pitchClass: 0, octave: 4 },
-      { pitchClass: 5, octave: 4 },
-      { pitchClass: 3, octave: 4 },
-    ]);
-  });
-
-  it("gives 'Happy Birthday' a syncopated pickup and a held final note (beats: 0.5 0.5 1 1 1 2)", () => {
-    expect(HAPPY_BIRTHDAY_BEATS).toEqual([0.5, 0.5, 1, 1, 1, 2]);
-  });
-
-  it("repeats the full transposed phrase 4 times to play all 4 sung lines", () => {
     const cMajor = KEYS.find((k) => k.name === "C")!;
     const sequence = getHappyBirthdaySequence(cMajor, "major");
-    const phrase = getHappyBirthdayNotes(cMajor, "major");
-    expect(sequence.length).toBe(phrase.length * HAPPY_BIRTHDAY_SENTENCE_COUNT);
-    expect(HAPPY_BIRTHDAY_SENTENCE_COUNT).toBe(4);
-    expect(sequence.map((n) => n.beats)).toEqual([
-      ...HAPPY_BIRTHDAY_BEATS,
-      ...HAPPY_BIRTHDAY_BEATS,
-      ...HAPPY_BIRTHDAY_BEATS,
-      ...HAPPY_BIRTHDAY_BEATS,
+    expect(sequence.length).toBe(25);
+
+    // Line 1 ("Happy birthday to you") starts on Sol (scale degree 4).
+    expect(sequence.slice(0, 6)).toEqual([
+      { pitchClass: 7, octave: 5, beats: 0.5 },
+      { pitchClass: 7, octave: 5, beats: 0.5 },
+      { pitchClass: 9, octave: 5, beats: 1 },
+      { pitchClass: 7, octave: 5, beats: 1 },
+      { pitchClass: 0, octave: 6, beats: 1 },
+      { pitchClass: 11, octave: 5, beats: 2 },
     ]);
-    expect(sequence.map((n) => ({ pitchClass: n.pitchClass, octave: n.octave }))).toEqual([
-      ...phrase,
-      ...phrase,
-      ...phrase,
-      ...phrase,
+    // Line 4 ("Happy birthday to you") starts a step lower, on Fa (degree 3).
+    expect(sequence.slice(-6)).toEqual([
+      { pitchClass: 5, octave: 5, beats: 0.5 },
+      { pitchClass: 5, octave: 5, beats: 0.5 },
+      { pitchClass: 4, octave: 5, beats: 1 },
+      { pitchClass: 0, octave: 5, beats: 1 },
+      { pitchClass: 2, octave: 5, beats: 1 },
+      { pitchClass: 0, octave: 5, beats: 2 },
     ]);
+  });
+
+  it("transposes 'Happy Birthday' into a minor key using the natural minor scale", () => {
+    const ebMajor = KEYS.find((k) => k.name === "E♭")!;
+    const sequence = getHappyBirthdaySequence(ebMajor, "minor");
+    expect(sequence.length).toBe(25);
+    // Its relative minor is C minor. Line 1's 6th note lands on the natural
+    // (flattened) 7th degree — pitch class 10, not major's 11 — the one note
+    // in line 1 where the minor scale actually diverges from the major one.
+    expect(sequence[5]).toEqual({ pitchClass: 10, octave: 5, beats: 2 });
   });
 });
 
@@ -452,23 +493,49 @@ describe("circle of fifths: built page structure (static parse, no script execut
   });
 
   it("labels minor wedges with the 'm' suffix (Am, Em, ...) instead of a bare letter name", () => {
-    const minorNames = Array.from(
+    const minorWedgeNames = Array.from(
+      doc!.querySelectorAll('button[data-mode="minor"] .wedge-name'),
+    );
+    expect(minorWedgeNames.length).toBe(12);
+    for (const nameEl of minorWedgeNames) {
+      const parts = Array.from(nameEl.querySelectorAll(".wedge-name-part")).map(
+        (el) => el.textContent?.trim(),
+      );
+      // Most wedges render one plain name; the single enharmonic pair
+      // (D♯m / E♭m) renders as two separate spans instead of a slash-joined
+      // string, so it never overflows its wedge.
+      const names = parts.length > 0 ? parts : [nameEl.textContent?.trim()];
+      for (const name of names) expect(name).toMatch(/m$/);
+      expect(nameEl.textContent).not.toContain("/");
+    }
+    const flatNames = Array.from(
       doc!.querySelectorAll('button[data-mode="minor"] .wedge-name'),
     ).map((el) => el.textContent?.trim());
-    expect(minorNames.length).toBe(12);
-    for (const name of minorNames) {
-      expect(name).toMatch(/m(?: \/ .+m)?$/);
-    }
-    expect(minorNames).toContain("Am");
-    expect(minorNames).toContain("Em");
+    expect(flatNames).toContain("Am");
+    expect(flatNames).toContain("Em");
   });
 
-  it("gives every wedge an SVG border tracing its own sector, for the neighbour-highlight outline", () => {
-    const paths = doc!.querySelectorAll(".wedge-border path");
-    expect(paths.length).toBe(24);
-    for (const path of paths) {
-      expect(path.getAttribute("d")).toBeTruthy();
+  it("draws one unified sector border per key, spanning the selected key and its 2 neighbours", () => {
+    const sectors = doc!.querySelectorAll(".sector-border");
+    expect(sectors.length).toBe(12);
+    const indices = Array.from(sectors).map((el) => el.getAttribute("data-sector-index"));
+    expect(new Set(indices).size).toBe(12);
+    for (const sector of sectors) {
+      const path = sector.querySelector("path");
+      expect(path?.getAttribute("d")).toBeTruthy();
     }
+    // The old per-wedge sector-border SVGs are gone.
+    expect(doc!.querySelector(".wedge-border")).toBeFalsy();
+  });
+
+  it("splits the one enharmonic major wedge's name into 2 spans with the flat spelling on the right, no slash", () => {
+    const fSharpButton = doc!.querySelector('button[data-mode="major"][data-key="F♯ / G♭"]');
+    expect(fSharpButton).toBeTruthy();
+    const parts = Array.from(fSharpButton!.querySelectorAll(".wedge-name-part")).map(
+      (el) => el.textContent?.trim(),
+    );
+    expect(parts).toEqual(["F♯", "G♭"]);
+    expect(fSharpButton!.querySelector(".wedge-name")?.textContent).not.toContain("/");
   });
 
   it("renders a chord/arpeggio playback toggle, defaulting to arpeggio", () => {
