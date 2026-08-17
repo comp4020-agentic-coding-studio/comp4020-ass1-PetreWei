@@ -245,17 +245,28 @@ const PIANO_OCTAVE_TEMPLATE: readonly (Omit<PianoKeyInfo, "octave"> & {
 
 // The two rendered blocks: block 0 is G4–B4 then C5–F♯5, block 1 is
 // G5–B5 then C6–F♯6 — matching keyboardBaseOctave/keyboardOctaveFor above.
+// A single trailing G6 caps off the keyboard's right end, one octave above
+// block 1's own G, so the visible range ends on a full octave rather than F♯.
 const PIANO_BASE_OCTAVES: readonly number[] = [4, 5];
 const WHITE_KEYS_PER_OCTAVE = PIANO_OCTAVE_TEMPLATE.filter((k) => !k.isBlack).length;
+const HIGH_G_TEMPLATE = PIANO_OCTAVE_TEMPLATE[0];
 
-export const PIANO_KEYS: readonly PianoKeyInfo[] = PIANO_BASE_OCTAVES.flatMap(
-  (baseOctave, blockIndex) =>
+export const PIANO_KEYS: readonly PianoKeyInfo[] = [
+  ...PIANO_BASE_OCTAVES.flatMap((baseOctave, blockIndex) =>
     PIANO_OCTAVE_TEMPLATE.map(({ octaveOffset, ...key }) => ({
       ...key,
       octave: baseOctave + octaveOffset,
       whiteIndex: key.whiteIndex + blockIndex * WHITE_KEYS_PER_OCTAVE,
     })),
-);
+  ),
+  {
+    pitchClass: HIGH_G_TEMPLATE.pitchClass,
+    label: HIGH_G_TEMPLATE.label,
+    isBlack: false,
+    octave: PIANO_BASE_OCTAVES[PIANO_BASE_OCTAVES.length - 1] + 1,
+    whiteIndex: PIANO_BASE_OCTAVES.length * WHITE_KEYS_PER_OCTAVE,
+  },
+];
 
 export function formatKeySignature(key: KeyInfo): string {
   if (key.sharps > 0) return key.sharps === 1 ? "1 sharp" : `${key.sharps} sharps`;

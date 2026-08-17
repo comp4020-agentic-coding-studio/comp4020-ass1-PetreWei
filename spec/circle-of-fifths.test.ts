@@ -100,20 +100,23 @@ describe("circle of fifths: pure logic", () => {
     });
   });
 
-  it("lays out 2 chromatic octaves for the on-screen keyboard, rotated to start on G", () => {
-    expect(PIANO_KEYS.length).toBe(24);
+  it("lays out 2 chromatic octaves plus a trailing high G for the on-screen keyboard, rotated to start on G", () => {
+    expect(PIANO_KEYS.length).toBe(25);
     const rotatedOctave = [7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6];
     expect(PIANO_KEYS.map((k) => k.pitchClass)).toEqual([
       ...rotatedOctave,
       ...rotatedOctave,
+      7,
     ]);
     // Each block starts at G, so its G–B half sits a register below its own
-    // C–F♯ half: G4–B4, C5–F♯5, then G5–B5, C6–F♯6.
+    // C–F♯ half: G4–B4, C5–F♯5, then G5–B5, C6–F♯6, then a lone G6 capping
+    // off the right end.
     expect(PIANO_KEYS.map((k) => k.octave)).toEqual([
       ...Array(5).fill(4),
       ...Array(7).fill(5),
       ...Array(5).fill(5),
       ...Array(7).fill(6),
+      6,
     ]);
     expect(PIANO_KEYS.filter((k) => k.isBlack).length).toBe(10);
   });
@@ -121,9 +124,8 @@ describe("circle of fifths: pure logic", () => {
   it("centers every black key on the boundary with the white key right after it, not inside one", () => {
     PIANO_KEYS.forEach((key, i) => {
       if (!key.isBlack) return;
-      // The keyboard is rotated to start on G, so it now ends on the black
-      // F♯ key — the one black key with no white key after it at all.
-      if (i + 1 >= PIANO_KEYS.length) return;
+      // The trailing high G means every black key, including the final F♯,
+      // now has a white key right after it.
       const nextWhiteKey = PIANO_KEYS[i + 1];
       expect(nextWhiteKey.isBlack).toBe(false);
       expect(nextWhiteKey.whiteIndex).toBe(key.whiteIndex);
@@ -446,9 +448,9 @@ describe("circle of fifths: built page structure (static parse, no script execut
     expect(numerals.length).toBe(24);
   });
 
-  it("renders 2 octaves of piano keys matching PIANO_KEYS, each with a pitch class and octave", () => {
+  it("renders 2 octaves plus a trailing high G of piano keys matching PIANO_KEYS, each with a pitch class and octave", () => {
     const pianoKeys = Array.from(doc!.querySelectorAll("[data-pitch-class]"));
-    expect(pianoKeys.length).toBe(24);
+    expect(pianoKeys.length).toBe(25);
     expect(pianoKeys.map((k) => k.getAttribute("data-pitch-class"))).toEqual(
       PIANO_KEYS.map((k) => String(k.pitchClass)),
     );
@@ -460,12 +462,16 @@ describe("circle of fifths: built page structure (static parse, no script execut
     ).toBe(10);
   });
 
-  it("renders each piano key as a clickable button labeled with its note name", () => {
+  it("renders each piano key as a clickable button, white keys labeled with their note name and octave", () => {
     const pianoKeys = Array.from(doc!.querySelectorAll("[data-pitch-class]"));
-    for (const key of pianoKeys) {
+    pianoKeys.forEach((key, i) => {
       expect(key.tagName).toBe("BUTTON");
-      expect(key.querySelector(".piano-key-label")?.textContent).toBeTruthy();
-    }
+      const label = key.querySelector(".piano-key-label")?.textContent;
+      expect(label).toBeTruthy();
+      if (!key.classList.contains("piano-key-black")) {
+        expect(label).toBe(`${PIANO_KEYS[i].label}${PIANO_KEYS[i].octave}`);
+      }
+    });
   });
 
   it("labels every black key with both its sharp and flat names", () => {

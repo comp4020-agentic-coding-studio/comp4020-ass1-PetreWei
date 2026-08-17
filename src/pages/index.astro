@@ -325,7 +325,7 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                       <span>{key.flatLabel}</span>
                     </span>
                   ) : (
-                    <span class="piano-key-label">{key.label}</span>
+                    <span class="piano-key-label">{key.label}{key.octave}</span>
                   )}
                 </button>
               ))
