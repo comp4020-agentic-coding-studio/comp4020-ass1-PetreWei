@@ -135,6 +135,9 @@ a {
   border-radius: 50%;
 }
 
+/* Fallback only: each wedge overrides --wedge-ink inline with whichever of
+   white / near-black actually contrasts with its own colour (getReadableInk).
+   A single uniform ink left 9 of the 24 labels under WCAG AA. */
 :root {
   --wedge-ink: #fff;
 }
@@ -155,8 +158,17 @@ a {
   filter: brightness(1.12);
 }
 
+/* A wedge is drawn by clip-path, and outline follows the element's box rather
+   than its painted shape — so an outline here would draw a rectangle across
+   the whole wheel. drop-shadow does follow the clip, giving a ring that hugs
+   the wedge. Two stacked shadows make it read at a glance, and the brightness
+   step is larger than :hover's so focus is never mistaken for hover — they
+   used to be byte-identical, which left keyboard users with no visible focus
+   at all. */
 .key-wedge:focus-visible {
-  filter: brightness(1.12);
+  outline: none;
+  filter: brightness(1.25) drop-shadow(0 0 2px #fff) drop-shadow(0 0 5px #0b5fff)
+    drop-shadow(0 0 9px #0b5fff);
 }
 
 .sector-border {
@@ -273,6 +285,17 @@ a {
   overflow-wrap: anywhere;
 }
 
+/* Text form of whatever is sounding, for readers who cannot hear it. Reserves
+   its line so the keyboard below does not jump when a chord starts. */
+.now-playing {
+  min-height: 1.4em;
+  margin: 0;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: #444;
+  text-align: center;
+}
+
 .piano-keyboard-scroll {
   width: min(90vw, 32rem);
   overflow-x: auto;
@@ -298,6 +321,12 @@ a {
   border: 1px solid #1a1a1a;
   border-radius: 0 0 0.2rem 0.2rem;
   cursor: pointer;
+}
+
+.piano-key:focus-visible {
+  outline: 3px solid #0b5fff;
+  outline-offset: -3px;
+  z-index: 3;
 }
 
 .piano-key-label {

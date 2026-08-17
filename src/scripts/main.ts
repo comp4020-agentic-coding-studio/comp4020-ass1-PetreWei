@@ -67,6 +67,17 @@ const placeholder = document.querySelector<HTMLElement>(
   '[data-testid="key-info-placeholder"]',
 );
 
+// Names whatever is sounding, as text, for anyone who cannot hear it. See the
+// markup comment on .now-playing for why this is not an aria-live region.
+const nowPlaying = document.querySelector<HTMLElement>('[data-testid="now-playing"]');
+
+const NOTE_NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+const noteName = (note: TriadNote) => `${NOTE_NAMES[note.pitchClass]}${note.octave}`;
+
+function showPlaying(notes: TriadNote[]): void {
+  if (nowPlaying) nowPlaying.textContent = notes.map(noteName).join(" · ");
+}
+
 let audioContext: AudioContext | null = null;
 
 function getAudioContext(): AudioContext {
@@ -164,6 +175,7 @@ function playAndHighlight(rootPitchClass: number, quality: ChordQuality): void {
   const triadNotes = getTriadNotes(rootPitchClass, quality);
   const notes = [triadNotes.root, triadNotes.third, triadNotes.fifth, triadNotes.doubledRoot];
   const stepSeconds = stepSecondsForMode(playbackMode);
+  showPlaying(notes);
   highlightPianoKeys(notes, stepSeconds);
   playNotes(notes, stepSeconds);
 }
@@ -171,6 +183,7 @@ function playAndHighlight(rootPitchClass: number, quality: ChordQuality): void {
 function playSingleNote(pitchClass: number, octave: number): void {
   stopHappyBirthday();
   const notes = [{ pitchClass, octave }];
+  showPlaying(notes);
   highlightPianoKeys(notes, 0);
   playNotes(notes, 0);
 }
@@ -218,6 +231,8 @@ function highlightMelody(sequence: HappyBirthdayNote[]): void {
     const startMs = elapsedBeats * HAPPY_BIRTHDAY_BEAT_SECONDS * 1000;
     const endMs = (elapsedBeats + note.beats) * HAPPY_BIRTHDAY_BEAT_SECONDS * 1000;
     const pianoKey = findPianoKey(note.pitchClass, note.octave);
+
+    pendingMelodyTimeouts.push(setTimeout(() => showPlaying([note]), startMs));
 
     if (pianoKey) {
       pendingMelodyTimeouts.push(

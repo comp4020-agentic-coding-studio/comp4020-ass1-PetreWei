@@ -185,7 +185,7 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                       ? t.home.enharmonicMajorLabel
                       : t.runtime.keyName(key.name, "major")
                   }
-                  style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
+                  style={`--key-color: ${key.color.css}; --wedge-ink: ${key.color.ink}; --wedge-clip: ${key.clipPath};`}
                 >
                   <span
                     class="wedge-name"
@@ -222,7 +222,7 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                       ? t.home.enharmonicMinorLabel
                       : t.runtime.keyName(key.relativeMinorName, "minor")
                   }
-                  style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
+                  style={`--key-color: ${key.color.css}; --wedge-ink: ${key.color.ink}; --wedge-clip: ${key.clipPath};`}
                 >
                   <span
                     class="wedge-name"
@@ -297,6 +297,15 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
             <tbody data-testid="chord-table-body"></tbody>
           </table>
         </section>
+        {/* Everything this page plays is otherwise audio-only. The keyboard
+        highlight already shows *where* a note is; this names it in text, so
+        the content of the sound is available without hearing it.
+
+        Deliberately not an aria-live region: a screen-reader user is getting
+        the audio itself, and announcing every note of an arpeggio or of Happy
+        Birthday would bury the page in chatter. aria-hidden keeps it a purely
+        visual channel. */}
+        <p class="now-playing" data-testid="now-playing" aria-hidden="true"></p>
         <div class="piano-keyboard-scroll">
           <div class="piano-keyboard" data-testid="piano-keyboard" role="group" aria-label={t.home.keyboardLabel}>
             {

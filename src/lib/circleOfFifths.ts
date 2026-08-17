@@ -16,7 +16,12 @@ export interface KeyColor {
   readonly hue: number;
   readonly css: string;
   readonly name: string;
+  /** Label colour with the better contrast against `css` — see getReadableInk. */
+  readonly ink: string;
 }
+
+export const INK_LIGHT = "#fff";
+export const INK_DARK = "#141414";
 
 export interface ScaleDifference {
   noteOnlyInA: string;
@@ -420,7 +425,66 @@ export function getKeyColor(index: number, quality: KeyQuality): KeyColor {
     hue,
     css: `hsl(${hue}, ${saturation * 100}%, ${lightness * 100}%)`,
     name: quality === "major" ? key.majorColorName : key.minorColorName,
+    ink: getReadableInk(hue, saturation, lightness),
   };
+}
+
+// --- Contrast -------------------------------------------------------------
+//
+// The wheel used one uniform white label colour, which reads well on the dark
+// minor ring but very badly on the bright majors: E major was 1.57:1 against
+// white, and 9 of the 24 wedges were under the 4.5:1 WCAG AA needs for text
+// this size. Picking each label's ink by measured contrast fixes that, and it
+// is the fix that also helps colour-blind readers — whatever a reader's hue
+// perception, luminance contrast is the channel that survives.
+
+function toLinear(channel: number): number {
+  return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+}
+
+function hslToRgb(hue: number, saturation: number, lightness: number): [number, number, number] {
+  const k = (n: number) => (n + hue / 30) % 12;
+  const a = saturation * Math.min(lightness, 1 - lightness);
+  const channel = (n: number) =>
+    lightness - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [channel(0), channel(8), channel(4)];
+}
+
+/** WCAG 2.x relative luminance of an sRGB colour given as 0-1 channels. */
+export function relativeLuminance(r: number, g: number, b: number): number {
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
+/** WCAG 2.x contrast ratio between two relative luminances (1-21). */
+export function contrastRatio(luminanceA: number, luminanceB: number): number {
+  const lighter = Math.max(luminanceA, luminanceB);
+  const darker = Math.min(luminanceA, luminanceB);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+const WHITE_LUMINANCE = relativeLuminance(1, 1, 1);
+// INK_DARK is #141414 rather than pure black: near-black keeps the labels from
+// looking harsh on the bright wedges while costing almost no contrast.
+const DARK_LUMINANCE = relativeLuminance(0x14 / 255, 0x14 / 255, 0x14 / 255);
+
+/** Whichever of INK_LIGHT / INK_DARK contrasts better with this wedge colour. */
+export function getReadableInk(hue: number, saturation: number, lightness: number): string {
+  const background = relativeLuminance(...hslToRgb(hue, saturation, lightness));
+  return contrastRatio(background, WHITE_LUMINANCE) >= contrastRatio(background, DARK_LUMINANCE)
+    ? INK_LIGHT
+    : INK_DARK;
+}
+
+/** Contrast of a key's label against its own wedge — used by the spec. */
+export function getKeyLabelContrast(index: number, quality: KeyQuality): number {
+  const hue = getKeyColorHue(index);
+  const key = KEYS[index];
+  const isBrightFlatMajor = quality === "major" && key.flats > 0;
+  const saturation = quality === "major" ? (isBrightFlatMajor ? 0.75 : 0.82) : 0.65;
+  const lightness = quality === "major" ? (isBrightFlatMajor ? 0.6 : 0.46) : 0.26;
+  const background = relativeLuminance(...hslToRgb(hue, saturation, lightness));
+  const ink = getReadableInk(hue, saturation, lightness);
+  return contrastRatio(background, ink === INK_LIGHT ? WHITE_LUMINANCE : DARK_LUMINANCE);
 }
 
 export const NATURAL_MINOR_SCALE_INTERVALS: readonly number[] = [0, 2, 3, 5, 7, 8, 10];
