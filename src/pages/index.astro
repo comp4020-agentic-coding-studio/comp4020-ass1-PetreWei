@@ -2,11 +2,13 @@
 import Layout from "../layouts/Layout.astro";
 import { KEYS, PIANO_KEYS, getAccidentalBadgeText, getKeyColor } from "../lib/circleOfFifths.ts";
 
-const MAJOR_LABEL_RADIUS_PERCENT = 38;
-const MINOR_LABEL_RADIUS_PERCENT = 24;
 const BADGE_RADIUS_PERCENT = 47;
-const MAJOR_RING = { inner: 31, outer: 45 };
-const MINOR_RING = { inner: 19, outer: 29 };
+const MAJOR_RING = { inner: 29, outer: 45 };
+const MINOR_RING = { inner: 15, outer: 26 };
+const MAJOR_LABEL_RADIUS_PERCENT = (MAJOR_RING.inner + MAJOR_RING.outer) / 2;
+const MINOR_LABEL_RADIUS_PERCENT = (MINOR_RING.inner + MINOR_RING.outer) / 2;
+const HOLE_RADIUS_PERCENT = 14;
+const INNER_BORDER_RADIUS_PERCENT = (MINOR_RING.outer + MAJOR_RING.inner) / 2;
 
 function polarPoint(angleDeg: number, radiusPercent: number) {
   const a = (angleDeg * Math.PI) / 180;
@@ -101,7 +103,7 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                     ? "F sharp major, or G flat major"
                     : `${key.name} major`
                 }
-                style={`--key-color: ${key.color.css}; clip-path: ${key.clipPath};`}
+                style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
               >
                 <span class="wedge-label" style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}>
                   <span class="wedge-numeral" data-testid="wedge-numeral" />
@@ -124,7 +126,7 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
                     ? "D sharp minor, or E flat minor"
                     : `${key.relativeMinorName} minor`
                 }
-                style={`--key-color: ${key.color.css}; clip-path: ${key.clipPath};`}
+                style={`--key-color: ${key.color.css}; --wedge-clip: ${key.clipPath};`}
               >
                 <span class="wedge-label" style={`--label-left: ${key.left}%; --label-top: ${key.top}%;`}>
                   <span class="wedge-numeral" data-testid="wedge-numeral" />
@@ -144,13 +146,25 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
               </span>
             ))
           }
-          <div class="circle-inner-border" aria-hidden="true" />
-          <div class="circle-center" data-testid="circle-center" aria-live="polite">
+          <div
+            class="circle-inner-border"
+            aria-hidden="true"
+            style={`width: ${INNER_BORDER_RADIUS_PERCENT * 2}%; height: ${INNER_BORDER_RADIUS_PERCENT * 2}%;`}
+          />
+          <div
+            class="circle-center"
+            data-testid="circle-center"
+            aria-live="polite"
+            style={`width: ${HOLE_RADIUS_PERCENT * 2}%;`}
+          >
             <p data-testid="key-info-placeholder">Pick a key</p>
             <p class="circle-center-name" data-field="name"></p>
             <p class="circle-center-colour" data-field="colour"></p>
           </div>
         </div>
+        <p class="circle-caption">
+          Outer Ring = Major · Inner Ring = Relative Minor · Amber Tint = Dominant · Green Tint = Subdominant
+        </p>
         <section class="key-info" data-testid="key-info" aria-live="polite" hidden>
           <table class="chord-table" data-testid="chord-table">
             <thead>
@@ -164,30 +178,32 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
           </table>
         </section>
         <div class="piano-keyboard-scroll">
-          <div class="piano-keyboard" data-testid="piano-keyboard" aria-hidden="true">
+          <div class="piano-keyboard" data-testid="piano-keyboard" role="group" aria-label="Two-octave piano keyboard">
             {
               PIANO_KEYS.map((key) => (
-                <div
+                <button
+                  type="button"
                   class={`piano-key ${key.isBlack ? "piano-key-black" : "piano-key-white"}`}
                   data-pitch-class={key.pitchClass}
                   data-octave={key.octave}
+                  aria-label={`${key.label} ${key.octave}`}
                   style={`--key-left: ${(key.whiteIndex / whiteKeyCount) * 100}%;`}
-                />
+                >
+                  <span class="piano-key-label">{key.label}</span>
+                </button>
               ))
             }
           </div>
         </div>
-        <ul class="legend">
-          <li class="legend-item">
-            <span class="legend-swatch legend-swatch-selected" aria-hidden="true" />
-            bigger, glowing wedge = the key you picked
-          </li>
-          <li class="legend-item">
-            <span class="legend-swatch legend-swatch-neighbor" aria-hidden="true" />
-            amber/green glow = one step clockwise/counter-clockwise
-          </li>
-          <li class="legend-item">outer ring = major, inner ring = its relative minor</li>
-        </ul>
+        <div class="happy-birthday" data-testid="happy-birthday">
+          <button type="button" class="happy-birthday-button" data-testid="happy-birthday-button" disabled>
+            Play Happy Birthday
+          </button>
+          <p class="happy-birthday-caption">
+            Replays the same short tune transposed into whichever key you've picked — major or minor — so you can
+            hear how the key colours its mood.
+          </p>
+        </div>
       </div>
     </section>
   </main>

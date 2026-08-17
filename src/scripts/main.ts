@@ -1,6 +1,7 @@
 import {
   KEYS,
   getDiatonicChords,
+  getHappyBirthdayNotes,
   getKeyColor,
   getNeighborIndices,
   getRelativeMinorTonicPitchClass,
@@ -33,6 +34,10 @@ const wedgeNumerals = Array.from(
   document.querySelectorAll<HTMLElement>('[data-testid="wedge-numeral"]'),
 );
 
+const happyBirthdayButton = document.querySelector<HTMLButtonElement>(
+  '[data-testid="happy-birthday-button"]',
+);
+
 const fields = {
   name: document.querySelector<HTMLElement>('[data-field="name"]'),
   colour: document.querySelector<HTMLElement>('[data-field="colour"]'),
@@ -57,9 +62,12 @@ function getAudioContext(): AudioContext {
   return audioContext;
 }
 
-function playTriad(notes: TriadNote[], mode: PlaybackMode): void {
+function stepSecondsForMode(mode: PlaybackMode): number {
+  return mode === "chord" ? 0 : ARPEGGIO_STEP_SECONDS;
+}
+
+function playNotes(notes: TriadNote[], stepSeconds: number): void {
   const context = getAudioContext();
-  const stepSeconds = mode === "chord" ? 0 : ARPEGGIO_STEP_SECONDS;
   const now = context.currentTime;
 
   notes.forEach((note, i) => {
@@ -86,7 +94,7 @@ function playTriad(notes: TriadNote[], mode: PlaybackMode): void {
 
 let pendingHighlightTimeouts: ReturnType<typeof setTimeout>[] = [];
 
-function highlightPianoKeys(notes: TriadNote[], mode: PlaybackMode): void {
+function highlightPianoKeys(notes: TriadNote[], stepSeconds: number): void {
   for (const timeoutId of pendingHighlightTimeouts) {
     clearTimeout(timeoutId);
   }
@@ -95,8 +103,6 @@ function highlightPianoKeys(notes: TriadNote[], mode: PlaybackMode): void {
   for (const pianoKey of pianoKeys) {
     pianoKey.classList.remove("piano-key-active");
   }
-
-  const stepSeconds = mode === "chord" ? 0 : ARPEGGIO_STEP_SECONDS;
 
   notes.forEach((note, i) => {
     const timeoutId = setTimeout(
@@ -116,12 +122,35 @@ function highlightPianoKeys(notes: TriadNote[], mode: PlaybackMode): void {
 
 function playAndHighlight(rootPitchClass: number, quality: ChordQuality): void {
   const triadNotes = getTriadNotes(rootPitchClass, quality);
-  const notes = [triadNotes.root, triadNotes.third, triadNotes.fifth];
-  highlightPianoKeys(notes, playbackMode);
-  playTriad(notes, playbackMode);
+  const notes = [triadNotes.root, triadNotes.third, triadNotes.fifth, triadNotes.doubledRoot];
+  const stepSeconds = stepSecondsForMode(playbackMode);
+  highlightPianoKeys(notes, stepSeconds);
+  playNotes(notes, stepSeconds);
+}
+
+function playSingleNote(pitchClass: number, octave: number): void {
+  const notes = [{ pitchClass, octave }];
+  highlightPianoKeys(notes, 0);
+  playNotes(notes, 0);
+}
+
+const HAPPY_BIRTHDAY_STEP_SECONDS = 0.42;
+
+let selectedIndex: number | null = null;
+let selectedQuality: KeyQuality | null = null;
+
+function playHappyBirthday(): void {
+  if (selectedIndex === null || selectedQuality === null) return;
+  const notes = getHappyBirthdayNotes(KEYS[selectedIndex], selectedQuality);
+  highlightPianoKeys(notes, HAPPY_BIRTHDAY_STEP_SECONDS);
+  playNotes(notes, HAPPY_BIRTHDAY_STEP_SECONDS);
 }
 
 function updateSelection(index: number, quality: KeyQuality): void {
+  selectedIndex = index;
+  selectedQuality = quality;
+  if (happyBirthdayButton) happyBirthdayButton.disabled = false;
+
   const key = KEYS[index];
   const { dominant, subdominant } = getNeighborIndices(index);
 
@@ -220,3 +249,11 @@ for (const modeButton of modeButtons) {
     }
   });
 }
+
+for (const pianoKey of pianoKeys) {
+  pianoKey.addEventListener("click", () => {
+    playSingleNote(Number(pianoKey.dataset.pitchClass), Number(pianoKey.dataset.octave));
+  });
+}
+
+happyBirthdayButton?.addEventListener("click", playHappyBirthday);

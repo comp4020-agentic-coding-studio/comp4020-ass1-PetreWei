@@ -7,6 +7,7 @@ import {
   PIANO_KEYS,
   getAccidentalBadgeText,
   getDiatonicChords,
+  getHappyBirthdayNotes,
   getKeyColor,
   getKeyColorHue,
   getNeighborIndices,
@@ -96,20 +97,18 @@ describe("circle of fifths: pure logic", () => {
     });
   });
 
-  it("lays out 3 chromatic octaves for the on-screen keyboard", () => {
-    expect(PIANO_KEYS.length).toBe(36);
+  it("lays out 2 chromatic octaves for the on-screen keyboard", () => {
+    expect(PIANO_KEYS.length).toBe(24);
     const oneOctave = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
     expect(PIANO_KEYS.map((k) => k.pitchClass)).toEqual([
       ...oneOctave,
       ...oneOctave,
-      ...oneOctave,
     ]);
     expect(PIANO_KEYS.map((k) => k.octave)).toEqual([
-      ...Array(12).fill(3),
       ...Array(12).fill(4),
       ...Array(12).fill(5),
     ]);
-    expect(PIANO_KEYS.filter((k) => k.isBlack).length).toBe(15);
+    expect(PIANO_KEYS.filter((k) => k.isBlack).length).toBe(10);
   });
 
   it("centers every black key on the boundary with the white key right after it, not inside one", () => {
@@ -126,6 +125,7 @@ describe("circle of fifths: pure logic", () => {
       root: { pitchClass: 0, octave: 4 },
       third: { pitchClass: 4, octave: 4 },
       fifth: { pitchClass: 7, octave: 4 },
+      doubledRoot: { pitchClass: 0, octave: 5 },
     });
 
     // F major: fifth (C) wraps up to octave 5, third (A) doesn't.
@@ -272,6 +272,30 @@ describe("circle of fifths: pure logic", () => {
     expect(getAccidentalBadgeText(byName("D"))).toBe("♯♯");
     expect(getAccidentalBadgeText(byName("F"))).toBe("♭");
   });
+
+  it("transposes 'Happy Birthday' into any major key as scale degrees (C major: C C D C F E)", () => {
+    const cMajor = KEYS.find((k) => k.name === "C")!;
+    expect(getHappyBirthdayNotes(cMajor, "major")).toEqual([
+      { pitchClass: 0, octave: 4 },
+      { pitchClass: 0, octave: 4 },
+      { pitchClass: 2, octave: 4 },
+      { pitchClass: 0, octave: 4 },
+      { pitchClass: 5, octave: 4 },
+      { pitchClass: 4, octave: 4 },
+    ]);
+  });
+
+  it("transposes 'Happy Birthday' into any minor key using the natural minor scale (C minor: C C D C F E♭)", () => {
+    const ebMajor = KEYS.find((k) => k.name === "E♭")!;
+    expect(getHappyBirthdayNotes(ebMajor, "minor")).toEqual([
+      { pitchClass: 0, octave: 4 },
+      { pitchClass: 0, octave: 4 },
+      { pitchClass: 2, octave: 4 },
+      { pitchClass: 0, octave: 4 },
+      { pitchClass: 5, octave: 4 },
+      { pitchClass: 3, octave: 4 },
+    ]);
+  });
 });
 
 describe("circle of fifths: built page structure (static parse, no script execution)", () => {
@@ -354,9 +378,9 @@ describe("circle of fifths: built page structure (static parse, no script execut
     expect(numerals.length).toBe(24);
   });
 
-  it("renders 3 octaves of piano keys matching PIANO_KEYS, each with a pitch class and octave", () => {
+  it("renders 2 octaves of piano keys matching PIANO_KEYS, each with a pitch class and octave", () => {
     const pianoKeys = Array.from(doc!.querySelectorAll("[data-pitch-class]"));
-    expect(pianoKeys.length).toBe(36);
+    expect(pianoKeys.length).toBe(24);
     expect(pianoKeys.map((k) => k.getAttribute("data-pitch-class"))).toEqual(
       PIANO_KEYS.map((k) => String(k.pitchClass)),
     );
@@ -365,7 +389,26 @@ describe("circle of fifths: built page structure (static parse, no script execut
     );
     expect(
       pianoKeys.filter((k) => k.classList.contains("piano-key-black")).length,
-    ).toBe(15);
+    ).toBe(10);
+  });
+
+  it("renders each piano key as a clickable button labeled with its note name", () => {
+    const pianoKeys = Array.from(doc!.querySelectorAll("[data-pitch-class]"));
+    for (const key of pianoKeys) {
+      expect(key.tagName).toBe("BUTTON");
+      expect(key.querySelector(".piano-key-label")?.textContent).toBeTruthy();
+    }
+  });
+
+  it("renders a Happy Birthday button, disabled until a key is picked", () => {
+    const button = doc!.querySelector('[data-testid="happy-birthday-button"]');
+    expect(button).toBeTruthy();
+    expect(button!.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("merges the ring legend into a single caption instead of a separate list", () => {
+    expect(doc!.querySelector(".legend")).toBeFalsy();
+    expect(doc!.querySelector(".circle-caption")).toBeTruthy();
   });
 
   it("renders a chord/arpeggio playback toggle, defaulting to arpeggio", () => {

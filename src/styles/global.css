@@ -95,7 +95,7 @@ a {
 
 .circle-wrapper {
   position: relative;
-  width: min(90vw, 32rem);
+  width: min(78vw, 26rem);
   aspect-ratio: 1 / 1;
   margin-inline: auto;
   border: 1px solid #ccc;
@@ -103,7 +103,7 @@ a {
 }
 
 :root {
-  --wedge-ink: #1a1a1a;
+  --wedge-ink: #fff;
 }
 
 .key-wedge {
@@ -113,8 +113,19 @@ a {
   height: 100%;
   padding: 0;
   border: none;
+  clip-path: var(--wedge-clip);
   background: var(--key-color, #fff);
   cursor: pointer;
+}
+
+.key-wedge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: var(--wedge-clip);
+  background: transparent;
+  pointer-events: none;
+  transition: background 0.15s ease;
 }
 
 .key-wedge:hover {
@@ -122,24 +133,32 @@ a {
 }
 
 .key-wedge:focus-visible {
-  filter: brightness(1.12) drop-shadow(0 0 0.25rem #0b5fff) drop-shadow(0 0 0.25rem #0b5fff);
+  filter: brightness(1.12);
+}
+
+.key-wedge:focus-visible::after {
+  background: rgb(11 95 255 / 30%);
 }
 
 .key-wedge[aria-pressed="true"] {
-  transform: scale(1.06);
-  filter: drop-shadow(0 0 0.3rem rgb(0 0 0 / 55%));
+  transform: scale(1.08);
 }
 
-.key-wedge.neighbor-dominant {
-  filter: drop-shadow(0 0 0.3rem #d97706) drop-shadow(0 0 0.3rem #d97706);
+.key-wedge[aria-pressed="true"]::after {
+  background: rgb(255 255 255 / 40%);
 }
 
-.key-wedge.neighbor-subdominant {
-  filter: drop-shadow(0 0 0.3rem #059669) drop-shadow(0 0 0.3rem #059669);
+.key-wedge.neighbor-dominant::after {
+  background: rgb(217 119 6 / 55%);
+}
+
+.key-wedge.neighbor-subdominant::after {
+  background: rgb(5 150 105 / 55%);
 }
 
 .wedge-label {
   position: absolute;
+  z-index: 1;
   left: var(--label-left);
   top: var(--label-top);
   transform: translate(-50%, -50%);
@@ -148,9 +167,6 @@ a {
   align-items: center;
   gap: 0.1rem;
   color: var(--wedge-ink);
-  text-shadow:
-    0 0 0.2rem rgb(255 255 255 / 70%),
-    0 0 0.35rem rgb(255 255 255 / 70%);
   font-size: clamp(0.65rem, 2.2vw, 0.95rem);
   line-height: 1;
   pointer-events: none;
@@ -180,8 +196,8 @@ a {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 60%;
-  height: 60%;
+  width: 55%;
+  height: 55%;
   transform: translate(-50%, -50%);
   border: 1px solid #ccc;
   border-radius: 50%;
@@ -192,14 +208,14 @@ a {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 36%;
+  width: 28%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.1rem;
   text-align: center;
-  font-size: clamp(0.6rem, 2vw, 0.8rem);
+  font-size: clamp(0.55rem, 1.8vw, 0.75rem);
   color: #444;
   pointer-events: none;
 }
@@ -210,8 +226,16 @@ a {
 
 .circle-center-name {
   font-weight: 700;
-  font-size: clamp(0.8rem, 3vw, 1.1rem);
+  font-size: clamp(0.7rem, 2.6vw, 1rem);
   color: #1a1a1a;
+}
+
+.circle-caption {
+  max-width: min(90vw, 32rem);
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #444;
 }
 
 .piano-keyboard-scroll {
@@ -221,32 +245,55 @@ a {
 
 .piano-keyboard {
   position: relative;
-  width: 44.1rem;
+  width: 29.4rem;
   height: 6rem;
 }
 
 .piano-key {
   position: absolute;
   left: var(--key-left);
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0 0.3rem;
+  margin: 0;
+  font: inherit;
+  appearance: none;
   border: 1px solid #1a1a1a;
   border-radius: 0 0 0.2rem 0.2rem;
+  cursor: pointer;
+}
+
+.piano-key-label {
+  font-size: 0.6rem;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .piano-key-white {
   top: 0;
-  width: calc(100% / 21);
+  width: calc(100% / 14);
   height: 100%;
   background: #fff;
   z-index: 1;
 }
 
+.piano-key-white .piano-key-label {
+  color: #1a1a1a;
+}
+
 .piano-key-black {
   top: 0;
-  width: calc(100% / 21 * 0.6);
+  width: calc(100% / 14 * 0.6);
   height: 60%;
   background: #1a1a1a;
   transform: translateX(-50%);
   z-index: 2;
+}
+
+.piano-key-black .piano-key-label {
+  color: #fff;
 }
 
 .piano-key.piano-key-active {
@@ -254,40 +301,48 @@ a {
   border-color: #0b5fff;
 }
 
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem 1.25rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.85rem;
-  color: #444;
+.piano-key.piano-key-active .piano-key-label {
+  color: #fff;
 }
 
-.legend-item {
+.happy-birthday {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 0.4rem;
+  max-width: min(90vw, 32rem);
+  text-align: center;
 }
 
-.legend-swatch {
-  width: 0.85rem;
-  height: 0.85rem;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: #999;
+.happy-birthday-button {
+  padding: 0.5rem 1.2rem;
+  border: 2px solid #0b5fff;
+  border-radius: 999px;
+  background: #0b5fff;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.legend-swatch-selected {
-  background: #1a1a1a;
-  box-shadow: 0 0 0.3rem rgb(0 0 0 / 60%);
+.happy-birthday-button:focus-visible {
+  outline: 3px solid #0b5fff;
+  outline-offset: 2px;
 }
 
-.legend-swatch-neighbor {
-  background: linear-gradient(90deg, #d97706 50%, #059669 50%);
-  box-shadow: 0 0 0.3rem #d97706, 0 0 0.3rem #059669;
+.happy-birthday-button:disabled {
+  border-color: #ccc;
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.happy-birthday-button:hover:not(:disabled) {
+  background: #094cd1;
+}
+
+.happy-birthday-caption {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #444;
 }
 
 .key-info {

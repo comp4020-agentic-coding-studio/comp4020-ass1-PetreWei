@@ -44,6 +44,7 @@ export interface TriadNotes {
   root: TriadNote;
   third: TriadNote;
   fifth: TriadNote;
+  doubledRoot: TriadNote;
 }
 
 export interface PianoKeyInfo {
@@ -178,6 +179,7 @@ export function getTriadNotes(
     root: { pitchClass: root, octave: 4 },
     third: { pitchClass: third, octave: thirdOctave },
     fifth: { pitchClass: fifth, octave: fifthOctave },
+    doubledRoot: { pitchClass: root, octave: 5 },
   };
 }
 
@@ -214,8 +216,8 @@ const PIANO_OCTAVE_TEMPLATE: readonly Omit<PianoKeyInfo, "octave">[] = [
 ];
 
 // Octave 4 holds the root of every triad; 5 covers the third/fifth's
-// occasional wrap; 3 is extra lower register for visual context.
-export const PIANO_OCTAVES: readonly number[] = [3, 4, 5];
+// occasional wrap and the doubled root.
+export const PIANO_OCTAVES: readonly number[] = [4, 5];
 const WHITE_KEYS_PER_OCTAVE = PIANO_OCTAVE_TEMPLATE.filter((k) => !k.isBlack).length;
 
 export const PIANO_KEYS: readonly PianoKeyInfo[] = PIANO_OCTAVES.flatMap((octave, octaveOffset) =>
@@ -364,4 +366,25 @@ export function getKeyColor(index: number, quality: KeyQuality): KeyColor {
     css: `hsl(${hue}, ${saturation * 100}%, ${lightness * 100}%)`,
     name: quality === "major" ? key.majorColorName : key.minorColorName,
   };
+}
+
+export const NATURAL_MINOR_SCALE_INTERVALS: readonly number[] = [0, 2, 3, 5, 7, 8, 10];
+
+// "Happy birthday to you" as scale degrees (tonic, tonic, supertonic, tonic,
+// subdominant, mediant) rather than fixed pitches, so the exact same
+// melodic shape transposes into any key — major or natural minor — to
+// demonstrate how the same tune reads differently in each key's colour.
+export const HAPPY_BIRTHDAY_DEGREES: readonly number[] = [0, 0, 1, 0, 3, 2];
+
+export function getHappyBirthdayNotes(key: KeyInfo, quality: KeyQuality): TriadNote[] {
+  const tonicPitchClass =
+    quality === "major" ? key.tonicPitchClass : getRelativeMinorTonicPitchClass(key.tonicPitchClass);
+  const intervals = quality === "major" ? MAJOR_SCALE_INTERVALS : NATURAL_MINOR_SCALE_INTERVALS;
+  return HAPPY_BIRTHDAY_DEGREES.map((degree) => {
+    const rawPitch = tonicPitchClass + intervals[degree];
+    return {
+      pitchClass: rawPitch % 12,
+      octave: rawPitch >= 12 ? 5 : 4,
+    };
+  });
 }
