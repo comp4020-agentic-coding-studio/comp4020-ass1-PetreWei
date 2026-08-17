@@ -1,0 +1,50 @@
+import type { RuntimeStrings } from "../types.ts";
+
+export const runtime: RuntimeStrings = {
+  chordTableHeaders: ["Accordo", "Funzione", "Fondamentale"],
+  functionNames: {
+    Tonic: "Tonica",
+    Supertonic: "Sopratonica",
+    Mediant: "Mediante",
+    Subdominant: "Sottodominante",
+    Dominant: "Dominante",
+    Submediant: "Sopradominante",
+    // "Sensibile" is the standard Italian term for the leading tone.
+    "Leading Tone": "Sensibile",
+    Subtonic: "Sottotonica",
+  },
+  qualities: {
+    major: "maggiore",
+    minor: "minore",
+    diminished: "diminuito",
+  },
+  colorNames: {
+    Cyan: "Ciano",
+    Chrysolite: "Crisolito",
+    "Bright Green": "Verde brillante",
+    Chartreuse: "Chartreuse",
+    Yellow: "Giallo",
+    Turmeric: "Curcuma",
+    Red: "Rosso",
+    Pink: "Rosa",
+    Magenta: "Magenta",
+    Violet: "Viola",
+    "Corn Flower": "Fiordaliso",
+    Azure: "Azzurro",
+    "Pthalo Green": "Verde ftalo",
+    "Brunswick Green": "Verde Brunswick",
+    Zucchini: "Zucchina",
+    "Oak Leaf": "Foglia di quercia",
+    "Olive Drab": "Verde oliva spento",
+    "Milk Chocolate": "Cioccolato al latte",
+    Maroon: "Bordeaux",
+    Elderberry: "Sambuco",
+    Purple: "Porpora",
+    "Spectral Violet": "Viola spettrale",
+    Ultramarine: "Oltremare",
+    "Prussian Blue": "Blu di Prussia",
+  },
+  keyName: (note, quality) => `${note} ${quality === "minor" ? "minore" : "maggiore"}`,
+  playChordLabel: (numeral, functionName, root) =>
+    `Suona ${numeral}, ${functionName}, ${root}`,
+};

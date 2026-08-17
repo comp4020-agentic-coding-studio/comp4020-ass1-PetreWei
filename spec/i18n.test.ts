@@ -184,6 +184,52 @@ describe.each(LOCALES)("%s dictionary", (locale) => {
     expect(strings.colour.designed).toContain("{link}");
   });
 
+  it("actually translates — no string left identical to English", () => {
+    // Catches a locale still pointing at the English dictionary, or a key
+    // copy-pasted and never translated. The allowlist is genuinely needed:
+    // some colour and proper names are the same word in several languages.
+    if (locale === "en") return;
+    // Words that genuinely are the same in the target language.
+    const IDENTICAL_IS_FINE = new Set([
+      "Chartreuse", // fr/it/es
+      "Magenta", // es/it
+      "Cyan", // fr
+      "Chrysolite", // fr
+      "Violet", // fr
+      "transposition", // fr
+      "Index", // fr
+      "Home", // it
+      "Arpeggio", // it
+    ]);
+    // entries[].page is a page-key identifier, not copy, so it must match.
+    const isIdentifier = (path: string) => path.endsWith(".page");
+    const same: string[] = [];
+    const walk = (value: unknown, english: unknown, path: string): void => {
+      if (typeof value === "string" && typeof english === "string") {
+        if (
+          value === english &&
+          value.length > 2 &&
+          !IDENTICAL_IS_FINE.has(value) &&
+          !isIdentifier(path)
+        ) {
+          same.push(`${path}: ${value}`);
+        }
+        return;
+      }
+      if (Array.isArray(value) && Array.isArray(english)) {
+        value.forEach((item, i) => walk(item, english[i], `${path}[${i}]`));
+        return;
+      }
+      if (value && english && typeof value === "object" && typeof english === "object") {
+        for (const [key, inner] of Object.entries(value)) {
+          walk(inner, (english as Record<string, unknown>)[key], `${path}.${key}`);
+        }
+      }
+    };
+    walk(strings, STRINGS.en, locale);
+    expect(same, `untranslated strings:\n${same.join("\n")}`).toEqual([]);
+  });
+
   it("has no empty string anywhere", () => {
     const empties: string[] = [];
     const walk = (value: unknown, path: string): void => {

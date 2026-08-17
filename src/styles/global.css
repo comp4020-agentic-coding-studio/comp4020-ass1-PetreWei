@@ -271,6 +271,16 @@ a {
   color: #1a1a1a;
 }
 
+/* Colour names are the longest thing in this ~67px hole, and translation makes
+   them longer still ("Milk Chocolate" → "Cioccolato al latte"). Tighten the
+   leading and allow hyphenation and mid-word breaking so a long name wraps
+   inside the hole rather than pushing out over the coloured ring. */
+.circle-center-colour {
+  line-height: 1.15;
+  hyphens: auto;
+  overflow-wrap: anywhere;
+}
+
 .piano-keyboard-scroll {
   width: min(90vw, 32rem);
   overflow-x: auto;

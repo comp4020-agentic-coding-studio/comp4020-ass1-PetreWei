@@ -1,0 +1,50 @@
+import type { RuntimeStrings } from "../types.ts";
+
+export const runtime: RuntimeStrings = {
+  chordTableHeaders: ["Accord", "Fonction", "Fondamentale"],
+  functionNames: {
+    Tonic: "Tonique",
+    Supertonic: "Sus-tonique",
+    Mediant: "Médiante",
+    Subdominant: "Sous-dominante",
+    Dominant: "Dominante",
+    Submediant: "Sus-dominante",
+    // "Sensible" is the standard French term for the leading tone.
+    "Leading Tone": "Sensible",
+    Subtonic: "Sous-tonique",
+  },
+  qualities: {
+    major: "majeur",
+    minor: "mineur",
+    diminished: "diminué",
+  },
+  colorNames: {
+    Cyan: "Cyan",
+    Chrysolite: "Chrysolite",
+    "Bright Green": "Vert vif",
+    Chartreuse: "Chartreuse",
+    Yellow: "Jaune",
+    Turmeric: "Curcuma",
+    Red: "Rouge",
+    Pink: "Rose",
+    Magenta: "Magenta",
+    Violet: "Violet",
+    "Corn Flower": "Bleuet",
+    Azure: "Azur",
+    "Pthalo Green": "Vert phtalo",
+    "Brunswick Green": "Vert Brunswick",
+    Zucchini: "Courgette",
+    "Oak Leaf": "Feuille de chêne",
+    "Olive Drab": "Vert olive terne",
+    "Milk Chocolate": "Chocolat au lait",
+    Maroon: "Bordeaux",
+    Elderberry: "Sureau",
+    Purple: "Pourpre",
+    "Spectral Violet": "Violet spectral",
+    Ultramarine: "Outremer",
+    "Prussian Blue": "Bleu de Prusse",
+  },
+  keyName: (note, quality) => `${note} ${quality === "minor" ? "mineur" : "majeur"}`,
+  playChordLabel: (numeral, functionName, root) =>
+    `Jouer ${numeral}, ${functionName}, ${root}`,
+};

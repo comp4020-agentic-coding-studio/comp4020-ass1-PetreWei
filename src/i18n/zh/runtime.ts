@@ -1,0 +1,50 @@
+import type { RuntimeStrings } from "../types.ts";
+
+export const runtime: RuntimeStrings = {
+  chordTableHeaders: ["和弦", "功能", "根音"],
+  functionNames: {
+    Tonic: "主音",
+    Supertonic: "上主音",
+    Mediant: "中音",
+    Subdominant: "下属音",
+    Dominant: "属音",
+    Submediant: "下中音",
+    "Leading Tone": "导音",
+    Subtonic: "下主音",
+  },
+  qualities: {
+    major: "大三和弦",
+    minor: "小三和弦",
+    diminished: "减三和弦",
+  },
+  colorNames: {
+    Cyan: "青色",
+    Chrysolite: "橄榄石绿",
+    "Bright Green": "亮绿色",
+    Chartreuse: "黄绿色",
+    Yellow: "黄色",
+    Turmeric: "姜黄色",
+    Red: "红色",
+    Pink: "粉红色",
+    Magenta: "洋红色",
+    Violet: "紫罗兰色",
+    "Corn Flower": "矢车菊蓝",
+    Azure: "天蓝色",
+    "Pthalo Green": "酞菁绿",
+    "Brunswick Green": "布伦斯威克绿",
+    Zucchini: "西葫芦绿",
+    "Oak Leaf": "橡叶绿",
+    "Olive Drab": "暗橄榄绿",
+    "Milk Chocolate": "牛奶巧克力色",
+    Maroon: "栗色",
+    Elderberry: "接骨木紫",
+    Purple: "紫色",
+    "Spectral Violet": "光谱紫",
+    Ultramarine: "群青色",
+    "Prussian Blue": "普鲁士蓝",
+  },
+  // Chinese attaches the mode as a suffix with no space: "C大调", "A小调".
+  keyName: (note, quality) => `${note}${quality === "minor" ? "小调" : "大调"}`,
+  playChordLabel: (numeral, functionName, root) =>
+    `播放 ${numeral}，${functionName}，${root}`,
+};
