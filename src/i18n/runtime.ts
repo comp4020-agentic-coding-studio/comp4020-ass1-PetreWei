@@ -1,6 +1,7 @@
 import type { Locale } from "../lib/i18n.ts";
 import type { RuntimeStrings } from "./types.ts";
 import { runtime as enRuntime } from "./en/runtime.ts";
+import { runtime as esRuntime } from "./es/runtime.ts";
 
 // The only dictionary the client script may import. Keeping it separate from
 // ./index.ts is load-bearing, not tidiness: main.ts is one bundled chunk shared
@@ -9,7 +10,7 @@ import { runtime as enRuntime } from "./en/runtime.ts";
 // every locale's prose to the browser.
 export const RUNTIME: Record<Locale, RuntimeStrings> = {
   en: enRuntime,
-  es: enRuntime,
+  es: esRuntime,
   fr: enRuntime,
   it: enRuntime,
   zh: enRuntime,

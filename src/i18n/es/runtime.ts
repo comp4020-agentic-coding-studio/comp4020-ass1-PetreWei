@@ -1,0 +1,50 @@
+import type { RuntimeStrings } from "../types.ts";
+
+export const runtime: RuntimeStrings = {
+  chordTableHeaders: ["Acorde", "Función", "Fundamental"],
+  functionNames: {
+    Tonic: "Tónica",
+    Supertonic: "Supertónica",
+    Mediant: "Mediante",
+    Subdominant: "Subdominante",
+    Dominant: "Dominante",
+    Submediant: "Submediante",
+    // "Sensible" is the standard Spanish term for the leading tone.
+    "Leading Tone": "Sensible",
+    Subtonic: "Subtónica",
+  },
+  qualities: {
+    major: "mayor",
+    minor: "menor",
+    diminished: "disminuido",
+  },
+  colorNames: {
+    Cyan: "Cian",
+    Chrysolite: "Crisolita",
+    "Bright Green": "Verde brillante",
+    Chartreuse: "Chartreuse",
+    Yellow: "Amarillo",
+    Turmeric: "Cúrcuma",
+    Red: "Rojo",
+    Pink: "Rosa",
+    Magenta: "Magenta",
+    Violet: "Violeta",
+    "Corn Flower": "Aciano",
+    Azure: "Azur",
+    "Pthalo Green": "Verde ftalo",
+    "Brunswick Green": "Verde Brunswick",
+    Zucchini: "Calabacín",
+    "Oak Leaf": "Hoja de roble",
+    "Olive Drab": "Verde oliva apagado",
+    "Milk Chocolate": "Chocolate con leche",
+    Maroon: "Granate",
+    Elderberry: "Saúco",
+    Purple: "Púrpura",
+    "Spectral Violet": "Violeta espectral",
+    Ultramarine: "Azul ultramar",
+    "Prussian Blue": "Azul de Prusia",
+  },
+  keyName: (note, quality) => `${note} ${quality === "minor" ? "menor" : "mayor"}`,
+  playChordLabel: (numeral, functionName, root) =>
+    `Reproducir ${numeral}, ${functionName}, ${root}`,
+};

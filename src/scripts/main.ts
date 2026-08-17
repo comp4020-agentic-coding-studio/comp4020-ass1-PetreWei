@@ -9,6 +9,14 @@ import {
   pitchClassToFrequency,
 } from "../lib/circleOfFifths.ts";
 import type { ChordQuality, HappyBirthdayNote, KeyQuality, TriadNote } from "../lib/circleOfFifths.ts";
+import { localeFromHtmlLang } from "../lib/i18n.ts";
+import { runtimeFor, translateColorName, translateFunctionName } from "../i18n/runtime.ts";
+
+// <html lang> is the single source of truth for which language this page is —
+// already asserted present on every page by the invariants suite — so there is
+// no second data- attribute that can drift out of step with it.
+const locale = localeFromHtmlLang(document.documentElement.lang);
+const t = runtimeFor(locale);
 
 type PlaybackMode = "chord" | "arpeggio";
 
@@ -261,12 +269,12 @@ function updateSelection(index: number, quality: KeyQuality): void {
 
   const isMinor = quality === "minor";
   const displayName = isMinor ? key.relativeMinorName : key.name;
-  const colorName = getKeyColor(index, quality).name;
+  const colorName = translateColorName(getKeyColor(index, quality).name, locale);
 
   if (placeholder) placeholder.hidden = true;
   if (keyInfoSection) keyInfoSection.hidden = false;
   if (fields.name)
-    fields.name.textContent = `${displayName} ${isMinor ? "minor" : "major"}`;
+    fields.name.textContent = t.keyName(displayName, isMinor ? "minor" : "major");
   if (fields.colour) fields.colour.textContent = colorName;
 
   if (chordTableBody) {
@@ -276,15 +284,16 @@ function updateSelection(index: number, quality: KeyQuality): void {
         const row = document.createElement("tr");
         row.tabIndex = 0;
         row.setAttribute("role", "button");
+        const functionName = translateFunctionName(chord.functionName, locale);
         row.setAttribute(
           "aria-label",
-          `Play ${chord.numeral}, ${chord.functionName}, ${chord.root}`,
+          t.playChordLabel(chord.numeral, functionName, chord.root),
         );
 
         const numeralCell = document.createElement("td");
         numeralCell.textContent = chord.numeral;
         const functionCell = document.createElement("td");
-        functionCell.textContent = chord.functionName;
+        functionCell.textContent = functionName;
         const rootCell = document.createElement("td");
         rootCell.textContent = chord.root;
         row.append(numeralCell, functionCell, rootCell);

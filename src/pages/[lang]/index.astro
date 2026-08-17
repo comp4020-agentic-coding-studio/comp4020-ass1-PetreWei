@@ -1,0 +1,15 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import HomePage from "../../components/HomePage.astro";
+import { localePaths } from "../../lib/i18n.ts";
+
+export const getStaticPaths = localePaths;
+
+// The typed locale comes through as a prop, not via Astro.params.lang, which
+// is string | undefined under strict TypeScript.
+const { locale } = Astro.props;
+---
+
+<Layout locale={locale} page="home">
+  <HomePage locale={locale} />
+</Layout>

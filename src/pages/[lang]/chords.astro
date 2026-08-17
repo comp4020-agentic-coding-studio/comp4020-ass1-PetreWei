@@ -1,0 +1,13 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ChordsPage from "../../components/ChordsPage.astro";
+import { localePaths } from "../../lib/i18n.ts";
+
+export const getStaticPaths = localePaths;
+
+const { locale } = Astro.props;
+---
+
+<Layout locale={locale} page="chords">
+  <ChordsPage locale={locale} />
+</Layout>

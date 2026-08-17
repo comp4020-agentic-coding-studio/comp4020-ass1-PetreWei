@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-import { HTML_LANG, PAGE_ORDER, pageHref } from "../lib/i18n.ts";
+import { HTML_LANG, LOCALES, LOCALE_NAME, PAGE_ORDER, pageHref } from "../lib/i18n.ts";
 import type { Locale, PageKey } from "../lib/i18n.ts";
 import { stringsFor } from "../i18n/index.ts";
 
@@ -25,6 +25,16 @@ const tabs = PAGE_ORDER.map((key) => ({
   current: key === page,
 }));
 
+// Each language links to the SAME page in that language, so switching keeps
+// your place. Named in its own language, and tagged with lang so a screen
+// reader pronounces "Français" in French rather than in the page's language.
+const languages = LOCALES.map((code) => ({
+  code,
+  label: LOCALE_NAME[code],
+  href: pageHref(base, code, page),
+  current: code === locale,
+}));
+
 // No hreflang/canonical here, deliberately. CI's link check crawls
 // link[href], and absolute alternates would point at pages that do not exist
 // yet on the live site — check runs before deploy, so they could never pass on
@@ -47,6 +57,24 @@ const tabs = PAGE_ORDER.map((key) => ({
           tabs.map((tab) => (
             <a class="tab" href={tab.href} aria-current={tab.current ? "page" : undefined}>
               {tab.label}
+            </a>
+          ))
+        }
+      </nav>
+      {/* A separate class from .tab, and aria-current="true" rather than
+      "page": the page-tab nav above owns "page", and exactly one of those
+      being current is an asserted contract. Plain links, no JavaScript — the
+      prose pages ship no script at all and a test enforces that. */}
+      <nav class="langs" aria-label={t.nav.languageLabel}>
+        {
+          languages.map((language) => (
+            <a
+              class="lang-link"
+              href={language.href}
+              lang={HTML_LANG[language.code]}
+              aria-current={language.current ? "true" : undefined}
+            >
+              {language.label}
             </a>
           ))
         }

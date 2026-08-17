@@ -1,7 +1,17 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { resolve } from "node:path";
-import { JSDOM } from "jsdom";
+import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { HTML_LANG, LOCALES, PAGE_ORDER, pageHref } from "../src/lib/i18n.ts";
+import { STRINGS } from "../src/i18n/index.ts";
+import {
+  BASE,
+  DIST,
+  builtPages,
+  distFileFor,
+  docFor,
+  docForFile,
+  expectedPages,
+  hrefs,
+} from "./support/dist.ts";
 import {
   HAPPY_BIRTHDAY_LINES,
   KEYS,
@@ -422,14 +432,14 @@ describe("circle of fifths: pure logic", () => {
   });
 });
 
-describe("circle of fifths: built page structure (static parse, no script execution)", () => {
-  const distPath = resolve("dist/index.html");
-  const doc = existsSync(distPath)
-    ? new JSDOM(readFileSync(distPath, "utf8")).window.document
-    : null;
+describe.each(LOCALES)(
+  "circle of fifths: built home page — %s (static parse, no script execution)",
+  (locale) => {
+  const t = STRINGS[locale];
+  const doc = existsSync(DIST) ? docFor(locale, "home") : null;
 
-  it("built dist/index.html", () => {
-    expect(doc, `${distPath} not found — run the build first`).toBeTruthy();
+  it(`built dist/${distFileFor(locale, "home")}`, () => {
+    expect(doc, `dist/${distFileFor(locale, "home")} not found — run the build first`).toBeTruthy();
   });
 
   it("renders 12 major and 12 minor key buttons matching the circle-of-fifths data", () => {
@@ -494,7 +504,12 @@ describe("circle of fifths: built page structure (static parse, no script execut
     const headers = Array.from(
       doc!.querySelectorAll('[data-testid="chord-table"] th'),
     ).map((th) => th.textContent);
-    expect(headers).toEqual(["Chord", "Function", "Root"]);
+    expect(headers).toEqual([...t.runtime.chordTableHeaders]);
+    // Read from the same module the page reads, so the check above only proves
+    // the wiring. One hardcoded non-English expectation proves the content.
+    if (locale === "es") {
+      expect(headers).toEqual(["Acorde", "Función", "Fundamental"]);
+    }
   });
 
   it("renders a roman-numeral slot on every one of the 24 wedges", () => {
@@ -610,20 +625,49 @@ describe("circle of fifths: built page structure (static parse, no script execut
     ]);
   });
 
-  it("links to every other page with base-anchored (not page-relative) hrefs", () => {
-    const links = Array.from(doc!.querySelectorAll("a")).map((a) => a.getAttribute("href"));
-    for (const file of ["circle.html", "chords.html", "colour.html", "site-index.html"]) {
-      expect(links, `home page should link to ${file}`).toContain(
-        `/comp4020-ass1-PetreWei/${file}`,
+  it("links to every other page in its OWN locale, base-anchored", () => {
+    // The likeliest bug in an i18n refactor is a translated page linking back
+    // into English, which nothing else here would catch.
+    const links = hrefs(doc!);
+    for (const page of PAGE_ORDER) {
+      if (page === "home") continue;
+      expect(links, `${locale} home should link to its own ${page}`).toContain(
+        pageHref(BASE, locale, page),
       );
     }
+    const foreign = links.filter(
+      (href) =>
+        href.startsWith(`${BASE}/`) &&
+        !LOCALES.some((other) =>
+          PAGE_ORDER.some((page) => pageHref(BASE, other, page) === href),
+        ),
+    );
+    expect(foreign, "unrecognised internal links").toEqual([]);
   });
 
   it("renders the nav as tabs, with the current page marked", () => {
     const tabs = Array.from(doc!.querySelectorAll(".tab"));
     expect(tabs.length).toBe(5);
-    const current = tabs.find((t) => t.getAttribute("aria-current") === "page");
-    expect(current?.textContent?.trim()).toBe("Home");
+    const current = tabs.filter((tab) => tab.getAttribute("aria-current") === "page");
+    expect(current.length).toBe(1);
+    expect(current[0].textContent?.trim()).toBe(t.nav.home);
+  });
+
+  it("declares the right language and offers every other one", () => {
+    expect(doc!.documentElement.getAttribute("lang")).toBe(
+      locale === "en" ? "en-AU" : locale === "zh" ? "zh-Hans" : locale,
+    );
+    const langLinks = Array.from(doc!.querySelectorAll(".lang-link"));
+    expect(langLinks.length).toBe(LOCALES.length);
+    // aria-current="true", not "page" — "page" belongs to the tab nav, where
+    // exactly one current tab is an asserted contract.
+    const current = langLinks.filter((a) => a.getAttribute("aria-current") === "true");
+    expect(current.length).toBe(1);
+    expect(current[0].getAttribute("href")).toBe(pageHref(BASE, locale, "home"));
+    // Switching language keeps you on the same page.
+    for (const other of LOCALES) {
+      expect(hrefs(doc!, ".lang-link")).toContain(pageHref(BASE, other, "home"));
+    }
   });
 
   it("keeps the interactive circle, chord table and keyboard on the home page", () => {
@@ -635,59 +679,70 @@ describe("circle of fifths: built page structure (static parse, no script execut
     // and nowhere else — see the theory-pages suite below.
     expect(doc!.querySelector("script[src]")).toBeTruthy();
   });
-});
+  },
+);
 
 // The single long theory page was split into one page per topic. Each is
 // prose only: the interactive wheel, chord table and keyboard stay on the
 // home page, so none of these may ship a client script.
-const THEORY_PAGES = [
-  { file: "circle.html", tab: "Circle", heading: "What the circle of fifths shows" },
-  { file: "chords.html", tab: "Chords", heading: "Chords, numerals and functions" },
-  { file: "colour.html", tab: "Colour", heading: "Where the colours come from" },
-  { file: "site-index.html", tab: "Index", heading: "Index" },
-] as const;
+// The prose pages. Each is text only: the interactive wheel, chord table and
+// keyboard stay on the home page, so none of these may ship a client script.
+const PROSE_PAGES = ["circle", "chords", "colour", "siteIndex"] as const;
 
-describe.each(THEORY_PAGES)("$file (static parse)", ({ file, tab, heading }) => {
-  const distPath = resolve("dist", file);
-  const doc = existsSync(distPath)
-    ? new JSDOM(readFileSync(distPath, "utf8")).window.document
-    : null;
+const localePagePairs = LOCALES.flatMap((locale) =>
+  PROSE_PAGES.map((page) => ({ locale, page })),
+);
+
+describe.each(localePagePairs)("$locale/$page (static parse)", ({ locale, page }) => {
+  const t = STRINGS[locale];
+  const file = distFileFor(locale, page);
+  const doc = existsSync(DIST) ? docFor(locale, page) : null;
 
   it(`built dist/${file}`, () => {
-    expect(doc, `${distPath} not found — run the build first`).toBeTruthy();
+    expect(doc, `dist/${file} not found — run the build first`).toBeTruthy();
   });
 
-  it("has exactly one top-level heading, naming its topic, and a nav", () => {
+  it("has exactly one top-level heading, naming its topic in its own language, and a nav", () => {
     expect(doc!.querySelectorAll("h1").length).toBe(1);
-    expect(doc!.querySelector("h1")?.textContent?.trim()).toBe(heading);
+    expect(doc!.querySelector("h1")?.textContent?.trim()).toBe(t[page].h1);
     expect(doc!.querySelector("nav")).toBeTruthy();
   });
 
-  it("links back to the home page with a base-anchored (not page-relative) href", () => {
-    const links = Array.from(doc!.querySelectorAll("a")).map((a) => a.getAttribute("href"));
-    expect(links).toContain("/comp4020-ass1-PetreWei/");
+  it("links back to its own locale's home page, base-anchored", () => {
+    expect(hrefs(doc!)).toContain(pageHref(BASE, locale, "home"));
   });
 
-  it(`marks the ${tab} tab as current, and only that one`, () => {
+  it("marks its own tab as current, and only that one", () => {
     const tabs = Array.from(doc!.querySelectorAll(".tab"));
     expect(tabs.length).toBe(5);
-    const current = tabs.filter((t) => t.getAttribute("aria-current") === "page");
+    const current = tabs.filter((tab) => tab.getAttribute("aria-current") === "page");
     // Exactly one, not just "the first one found": marking two tabs current
     // would still satisfy a .find() lookup while being wrong on the page.
     expect(current.length).toBe(1);
-    expect(current[0].textContent?.trim()).toBe(tab);
+    expect(current[0].textContent?.trim()).toBe(t.nav[page]);
   });
 
   it("carries no client script — the interactive parts live on the home page", () => {
     expect(doc!.querySelectorAll("script").length).toBe(0);
   });
+
+  it("keeps every prose section's inline markup intact under translation", () => {
+    // Prose is stored as HTML strings, which astro check cannot look inside.
+    // Comparing the tag multiset against English catches a translation that
+    // dropped or mangled a <strong>/<em>/<code>/<a>.
+    const shape = (document_: Document) => {
+      const counts: Record<string, number> = {};
+      for (const el of document_.querySelectorAll("main p *, main li *")) {
+        counts[el.tagName] = (counts[el.tagName] ?? 0) + 1;
+      }
+      return counts;
+    };
+    expect(shape(doc!)).toEqual(shape(docFor("en", page)));
+  });
 });
 
-describe("site index (static parse)", () => {
-  const distPath = resolve("dist/site-index.html");
-  const doc = existsSync(distPath)
-    ? new JSDOM(readFileSync(distPath, "utf8")).window.document
-    : null;
+describe.each(LOCALES)("site index — %s (static parse)", (locale) => {
+  const doc = existsSync(DIST) ? docFor(locale, "siteIndex") : null;
 
   it("lists every other page in its table of contents", () => {
     const entries = Array.from(doc!.querySelectorAll(".site-index-entry"));
@@ -695,9 +750,9 @@ describe("site index (static parse)", () => {
     const links = entries.flatMap((entry) =>
       Array.from(entry.querySelectorAll("a")).map((a) => a.getAttribute("href")),
     );
-    for (const file of ["", "circle.html", "chords.html", "colour.html"]) {
-      expect(links, `index should link to ${file || "the home page"}`).toContain(
-        `/comp4020-ass1-PetreWei/${file}`,
+    for (const page of ["home", "circle", "chords", "colour"] as const) {
+      expect(links, `${locale} index should link to its own ${page}`).toContain(
+        pageHref(BASE, locale, page),
       );
     }
   });
@@ -710,87 +765,47 @@ describe("site index (static parse)", () => {
   });
 });
 
-describe("references, gathered on the index page", () => {
-  const distDir = resolve("dist");
-  // Discovered rather than listed, so adding a page can't quietly opt it out
-  // of the citation checks — the old hardcoded pair did exactly that.
-  const pages = existsSync(distDir)
-    ? readdirSync(distDir, { recursive: true })
-        .map(String)
-        .filter((name) => name.endsWith(".html"))
-        .sort()
-        .map((name) => ({
-          name,
-          doc: new JSDOM(readFileSync(resolve(distDir, name), "utf8")).window.document,
-        }))
-    : [];
+describe("the built site as a whole", () => {
+  // Discovered rather than listed, so adding a page or a locale can't quietly
+  // opt it out of these checks.
+  const pages = builtPages().map((name) => ({ name, doc: docForFile(name) }));
 
   it("built the site", () => {
     expect(pages.length, "dist/ not found — run the build first").toBeGreaterThan(0);
   });
 
-  it("found all five pages", () => {
-    expect(pages.map((page) => page.name)).toEqual([
-      "chords.html",
-      "circle.html",
-      "colour.html",
-      "index.html",
-      "site-index.html",
-    ]);
+  it("emits exactly one page per locale per page key, and no en.html", () => {
+    expect(pages.map((page) => page.name)).toEqual(expectedPages());
+    expect(pages.length).toBe(LOCALES.length * PAGE_ORDER.length);
+    // English lives at index.html; an "en" entry in getStaticPaths would emit a
+    // second, competing home page.
+    expect(pages.map((page) => page.name)).not.toContain("en.html");
   });
 
-  const indexRefs = () => {
-    const doc = pages.find((page) => page.name === "site-index.html")!.doc;
-    return Array.from(doc.querySelectorAll(".references-section a")).map((a) =>
-      a.getAttribute("href"),
-    );
-  };
-
-  it("gathers every source into one reference list on the index page", () => {
-    const doc = pages.find((page) => page.name === "site-index.html")!.doc;
-    expect(doc.querySelector(".references-section")).toBeTruthy();
-    expect(doc.querySelectorAll(".references li").length).toBe(7);
-  });
-
-  it("cites Mr Mars' colour wheel, via the Internet Archive", () => {
-    // The original host 403s automated requests (CI included) while serving
-    // browsers fine, so the citation points at a dated snapshot: it resolves
-    // for the link check and can't rot. The live URL must not come back.
-    expect(indexRefs()).toContain(
-      "https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
-    );
-    const doc = pages.find((page) => page.name === "site-index.html")!.doc;
-    const all = Array.from(doc.querySelectorAll("a")).map((a) => a.getAttribute("href") ?? "");
-    expect(all.some((href) => href.startsWith("https://warrenmars.com/"))).toBe(false);
-  });
-
-  it("cites musicca.com and chromatone.center as circle-of-fifths references", () => {
-    expect(indexRefs()).toContain("https://www.musicca.com/circle-of-fifths");
-    expect(indexRefs()).toContain("https://fifths.chromatone.center/");
-  });
-
-  it("cites the sources for the theory the split pages explain", () => {
-    for (const url of [
-      "https://en.wikipedia.org/wiki/Chromesthesia",
-      "https://en.wikipedia.org/wiki/Circle_of_fifths",
-      "https://en.wikipedia.org/wiki/Roman_numeral_analysis",
-      "https://en.wikipedia.org/wiki/12_equal_temperament",
-    ]) {
-      expect(indexRefs(), `missing reference: ${url}`).toContain(url);
+  it("declares the correct language on every page", () => {
+    // The course-owned invariants suite only checks that lang is non-empty, so
+    // a Spanish page shipping lang="en-AU" would pass there. This is the check
+    // that actually matters once there are five languages.
+    for (const locale of LOCALES) {
+      for (const page of PAGE_ORDER) {
+        expect(
+          docFor(locale, page).documentElement.getAttribute("lang"),
+          `${distFileFor(locale, page)}`,
+        ).toBe(HTML_LANG[locale]);
+      }
     }
   });
 
-  it("no longer repeats a footer on every page", () => {
+  it("never repeats a footer on any page", () => {
     for (const { name, doc } of pages) {
       expect(doc.querySelector("footer"), `${name} should have no footer`).toBeNull();
     }
   });
 
-  it("keeps the blocked host out of every page, not just the index", () => {
+  it("keeps the bot-blocked host out of every page", () => {
     for (const { name, doc } of pages) {
-      const hrefs = Array.from(doc.querySelectorAll("a")).map((a) => a.getAttribute("href") ?? "");
       expect(
-        hrefs.filter((href) => href.startsWith("https://warrenmars.com/")),
+        hrefs(doc).filter((href) => href.startsWith("https://warrenmars.com/")),
         `${name} still links the un-archived host`,
       ).toEqual([]);
     }
@@ -798,18 +813,73 @@ describe("references, gathered on the index page", () => {
 
   // CI's link check crawls every distinct external URL concurrently and
   // Wikipedia 429s a burst of them from a shared runner IP — ten turned the
-  // check red. This caps the count so adding citations can't quietly
-  // reintroduce that failure; raising the cap is a deliberate decision.
+  // check red once already. These two caps are the guard; raising either is a
+  // deliberate decision, not a side effect of adding a citation or a locale.
+  const externalUrls = (doc: Document) =>
+    hrefs(doc, "a[href^='https://']");
+
   it("keeps the number of distinct external URLs low enough for the link check", () => {
-    const external = new Set(
-      pages.flatMap(({ doc }) =>
-        Array.from(doc.querySelectorAll("a[href^='https://']")).map(
-          (a) => a.getAttribute("href")!,
-        ),
-      ),
-    );
+    const external = new Set(pages.flatMap(({ doc }) => externalUrls(doc)));
     expect(external.size, [...external].join("\n")).toBeLessThanOrEqual(8);
     const wikipedia = [...external].filter((url) => url.includes("wikipedia.org"));
     expect(wikipedia.length, wikipedia.join("\n")).toBeLessThanOrEqual(4);
+  });
+
+  it("cites the SAME external URLs in every locale", () => {
+    // Pointing translated pages at localised Wikipedia editions is the obvious
+    // instinct and would take the site from 7 distinct external URLs to 23,
+    // re-triggering the rate limit. Locking the set identical makes that
+    // impossible to do by accident.
+    const english = [...new Set(externalUrls(docFor("en", "siteIndex")))].sort();
+    expect(english.length).toBe(7);
+    for (const locale of LOCALES) {
+      expect(
+        [...new Set(externalUrls(docFor(locale, "siteIndex")))].sort(),
+        `${locale} cites different sources`,
+      ).toEqual(english);
+    }
+  });
+});
+
+describe.each(LOCALES)("references — %s", (locale) => {
+  const doc = existsSync(DIST) ? docFor(locale, "siteIndex") : null;
+  const refs = () => hrefs(doc!, ".references-section a");
+
+  it("gathers all seven sources into one reference list on the index page", () => {
+    expect(doc!.querySelector(".references-section")).toBeTruthy();
+    expect(doc!.querySelectorAll(".references li").length).toBe(7);
+  });
+
+  it("cites Mr Mars' colour wheel, via the Internet Archive", () => {
+    // The original host 403s automated requests (CI included) while serving
+    // browsers fine, so the citation points at a dated snapshot: it resolves
+    // for the link check and can't rot.
+    expect(refs()).toContain(
+      "https://web.archive.org/web/20241214000856/https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
+    );
+  });
+
+  it("cites musicca.com and chromatone.center as circle-of-fifths references", () => {
+    expect(refs()).toContain("https://www.musicca.com/circle-of-fifths");
+    expect(refs()).toContain("https://fifths.chromatone.center/");
+  });
+
+  it("cites the sources for the theory the prose pages explain", () => {
+    for (const url of [
+      "https://en.wikipedia.org/wiki/Chromesthesia",
+      "https://en.wikipedia.org/wiki/Circle_of_fifths",
+      "https://en.wikipedia.org/wiki/Roman_numeral_analysis",
+      "https://en.wikipedia.org/wiki/12_equal_temperament",
+    ]) {
+      expect(refs(), `missing reference: ${url}`).toContain(url);
+    }
+  });
+
+  it("marks the English-language source titles with lang, for screen readers", () => {
+    // WCAG 3.1.2, Language of Parts: bibliographic convention keeps the title
+    // of an English work in English, so it must be tagged as such on a page
+    // that is otherwise not in English.
+    const titled = Array.from(doc!.querySelectorAll('.references-section a[lang="en"]'));
+    expect(titled.length).toBe(7);
   });
 });

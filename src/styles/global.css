@@ -50,6 +50,36 @@ a {
   border-bottom-color: #0b5fff;
 }
 
+/* Language switcher: quieter than the page tabs, and wrapping for the same
+   reason they do — five language names exceed a 390px phone. */
+.langs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: -0.75rem 0 1.5rem;
+  font-size: 0.8rem;
+}
+
+.lang-link {
+  color: #555;
+  text-decoration: none;
+}
+
+.lang-link:hover {
+  color: #0b5fff;
+  text-decoration: underline;
+}
+
+.lang-link:focus-visible {
+  outline: 3px solid #0b5fff;
+  outline-offset: 2px;
+}
+
+.lang-link[aria-current="true"] {
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
 .circle-layout {
   display: flex;
   flex-direction: column;

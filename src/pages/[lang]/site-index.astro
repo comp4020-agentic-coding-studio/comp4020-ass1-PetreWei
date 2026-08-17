@@ -1,0 +1,13 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import SiteIndexPage from "../../components/SiteIndexPage.astro";
+import { localePaths } from "../../lib/i18n.ts";
+
+export const getStaticPaths = localePaths;
+
+const { locale } = Astro.props;
+---
+
+<Layout locale={locale} page="siteIndex">
+  <SiteIndexPage locale={locale} />
+</Layout>
