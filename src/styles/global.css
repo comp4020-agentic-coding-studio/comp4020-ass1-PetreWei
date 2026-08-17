@@ -138,8 +138,8 @@ a {
 
 .sector-border path {
   fill: none;
-  stroke: #0b5fff;
-  stroke-width: 1.2;
+  stroke: #c7ccd4;
+  stroke-width: 0.4;
 }
 
 .sector-border.active {
