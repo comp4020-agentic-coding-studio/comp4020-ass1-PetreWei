@@ -91,23 +91,22 @@ const tabs = PAGES.map((page) => ({
           showing the selected key's detail at the centre of the wheel.
         </li>
         <li>
-          Wikipedia, <a href="https://en.wikipedia.org/wiki/Triad_(music)">"Triad (music)"</a>
-          — how the three-note chords in the chord table are built.
-        </li>
-        <li>
           Wikipedia, <a href="https://en.wikipedia.org/wiki/Roman_numeral_analysis">"Roman numeral analysis"</a>
-          — the roman numerals, scale-degree names, and chord qualities shown on
-          the wheel and in the chord table.
-        </li>
-        <li>
-          Wikipedia, <a href="https://en.wikipedia.org/wiki/Scientific_pitch_notation">"Scientific pitch notation"</a>
-          — the octave numbers printed on the keyboard's white keys (C5, D5, …).
+          — the triads, roman numerals, scale-degree names and chord qualities
+          shown on the wheel and in the chord table.
         </li>
         <li>
           Wikipedia, <a href="https://en.wikipedia.org/wiki/12_equal_temperament">"12 equal temperament"</a>
-          — the A440 tuning the played frequencies are derived from.
+          — the A440 tuning the played frequencies are derived from, and the
+          octave numbering printed on the keyboard's white keys.
         </li>
       </ul>
+      {/* Deliberately few external citations, and no inline links in the prose
+      on top of them: CI's link check crawls every distinct external URL on the
+      site concurrently, and Wikipedia rate-limits (429) a burst of them from a
+      shared CI IP. Ten distinct Wikipedia URLs turned the check red; the two
+      here, plus the two already above, stay near the count that has always
+      passed. Prefer naming a concept in the prose over adding a link to it. */}
     </footer>
   </body>
 </html>

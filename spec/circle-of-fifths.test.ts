@@ -762,13 +762,28 @@ describe("references section on every built page", () => {
         a.getAttribute("href"),
       );
       for (const url of [
-        "https://en.wikipedia.org/wiki/Triad_(music)",
         "https://en.wikipedia.org/wiki/Roman_numeral_analysis",
-        "https://en.wikipedia.org/wiki/Scientific_pitch_notation",
         "https://en.wikipedia.org/wiki/12_equal_temperament",
       ]) {
         expect(links, `missing reference: ${url}`).toContain(url);
       }
     });
   }
+
+  // CI's link check crawls every distinct external URL concurrently and
+  // Wikipedia 429s a burst of them from a shared runner IP — ten turned the
+  // check red. This caps the count so adding citations can't quietly
+  // reintroduce that failure; raising the cap is a deliberate decision.
+  it("keeps the number of distinct external URLs low enough for the link check", () => {
+    const external = new Set(
+      pages.flatMap(({ doc }) =>
+        Array.from(doc.querySelectorAll("a[href^='https://']")).map(
+          (a) => a.getAttribute("href")!,
+        ),
+      ),
+    );
+    expect(external.size, [...external].join("\n")).toBeLessThanOrEqual(8);
+    const wikipedia = [...external].filter((url) => url.includes("wikipedia.org"));
+    expect(wikipedia.length, wikipedia.join("\n")).toBeLessThanOrEqual(4);
+  });
 });
