@@ -6,6 +6,7 @@ body {
   color: #1a1a1a;
 }
 
+header,
 main {
   max-width: 64rem;
   margin: 0 auto;
@@ -13,6 +14,37 @@ main {
 
 a {
   color: #0b5fff;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  list-style: none;
+  border-bottom: 2px solid #ddd;
+}
+
+.tab {
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  color: #444;
+  font-weight: 600;
+  border-bottom: 3px solid transparent;
+}
+
+.tab:hover {
+  color: #0b5fff;
+}
+
+.tab:focus-visible {
+  outline: 3px solid #0b5fff;
+  outline-offset: 2px;
+}
+
+.tab[aria-current="page"] {
+  color: #0b5fff;
+  border-bottom-color: #0b5fff;
 }
 
 .circle-layout {

@@ -205,9 +205,16 @@ describe("circle of fifths: built page structure (static parse, no script execut
     ).toBe(5);
   });
 
-  it("links to the theory page", () => {
+  it("links to the theory page with a base-anchored (not page-relative) href", () => {
     const links = Array.from(doc!.querySelectorAll("a")).map((a) => a.getAttribute("href"));
-    expect(links).toContain("./theory.html");
+    expect(links).toContain("/comp4020-ass1-PetreWei/theory.html");
+  });
+
+  it("renders the nav as tabs, with the current page marked", () => {
+    const tabs = Array.from(doc!.querySelectorAll(".tab"));
+    expect(tabs.length).toBe(2);
+    const current = tabs.find((t) => t.getAttribute("aria-current") === "page");
+    expect(current?.textContent?.trim()).toBe("Home");
   });
 });
 
@@ -226,9 +233,15 @@ describe("chromesthesia theory page (static parse)", () => {
     expect(doc!.querySelector("nav")).toBeTruthy();
   });
 
-  it("links back to the home page", () => {
+  it("links back to the home page with a base-anchored (not page-relative) href", () => {
     const links = Array.from(doc!.querySelectorAll("a")).map((a) => a.getAttribute("href"));
-    expect(links).toContain("./");
+    expect(links).toContain("/comp4020-ass1-PetreWei/");
+  });
+
+  it("marks the theory tab as current", () => {
+    const tabs = Array.from(doc!.querySelectorAll(".tab"));
+    const current = tabs.find((t) => t.getAttribute("aria-current") === "page");
+    expect(current?.textContent?.trim()).toBe("Theory");
   });
 });
 

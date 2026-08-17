@@ -23,15 +23,14 @@ const positionedMinorKeys = KEYS.map((key) => ({
   ...withPosition(key, MINOR_RADIUS_PERCENT),
   color: getKeyColor(key.index, "minor"),
 }));
+
+const base = import.meta.env.BASE_URL.endsWith("/")
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+const theoryHref = `${base}theory.html`;
 ---
 
 <Layout title="Chromesthesia Circle of Fifths">
-  <header>
-    <nav aria-label="Primary">
-      <a href="./">Home</a>
-      <a href="./theory.html">Theory</a>
-    </nav>
-  </header>
   <main>
     <h1>Chromesthesia Circle of Fifths</h1>
     <p data-testid="intro">
@@ -41,7 +40,7 @@ const positionedMinorKeys = KEYS.map((key) => ({
       the circle light up too — they share six of its seven scale notes,
       which is why moving around this circle is always the smallest possible
       step. Curious where the colours and the theory come from?
-      <a href="./theory.html">Read the theory page →</a>
+      <a href={theoryHref}>Read the theory page →</a>
     </p>
     <section class="circle-layout">
       <div class="circle-column">
