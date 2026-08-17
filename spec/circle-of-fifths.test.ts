@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import {
   KEYS,
   PIANO_KEYS,
+  getAccidentalBadgeText,
+  getDiatonicChords,
   getKeyColor,
   getKeyColorHue,
   getNeighborIndices,
@@ -199,6 +201,40 @@ describe("circle of fifths: pure logic", () => {
     expect(getReadableTextColor(60, 0.9, 0.9)).toBe("#111111");
     expect(getReadableTextColor(240, 0.7, 0.15)).toBe("#ffffff");
   });
+
+  it("lists C major's 7 diatonic chords with standard roman numerals", () => {
+    const cMajor = KEYS.find((k) => k.name === "C")!;
+    expect(getDiatonicChords(cMajor, "major")).toEqual([
+      { numeral: "I", root: "C", quality: "major" },
+      { numeral: "ii", root: "D", quality: "minor" },
+      { numeral: "iii", root: "E", quality: "minor" },
+      { numeral: "IV", root: "F", quality: "major" },
+      { numeral: "V", root: "G", quality: "major" },
+      { numeral: "vi", root: "A", quality: "minor" },
+      { numeral: "vii°", root: "B", quality: "diminished" },
+    ]);
+  });
+
+  it("lists A minor's 7 diatonic chords, matching musicca's reference table", () => {
+    const cMajor = KEYS.find((k) => k.name === "C")!;
+    expect(getDiatonicChords(cMajor, "minor")).toEqual([
+      { numeral: "i", root: "A", quality: "minor" },
+      { numeral: "ii°", root: "B", quality: "diminished" },
+      { numeral: "III", root: "C", quality: "major" },
+      { numeral: "iv", root: "D", quality: "minor" },
+      { numeral: "v", root: "E", quality: "minor" },
+      { numeral: "VI", root: "F", quality: "major" },
+      { numeral: "VII", root: "G", quality: "major" },
+    ]);
+  });
+
+  it("badges each key with its own accidental glyph repeated once per sharp/flat", () => {
+    const byName = (name: string) => KEYS.find((k) => k.name === name)!;
+    expect(getAccidentalBadgeText(byName("C"))).toBe("♮");
+    expect(getAccidentalBadgeText(byName("G"))).toBe("♯");
+    expect(getAccidentalBadgeText(byName("D"))).toBe("♯♯");
+    expect(getAccidentalBadgeText(byName("F"))).toBe("♭");
+  });
 });
 
 describe("circle of fifths: built page structure (static parse, no script execution)", () => {
@@ -242,6 +278,34 @@ describe("circle of fifths: built page structure (static parse, no script execut
 
   it("provides an info panel target for the client script to update", () => {
     expect(doc!.querySelector('[data-testid="key-info"]')).toBeTruthy();
+  });
+
+  it("merges the picked-key name into the centre of the circle, not a separate panel", () => {
+    const wrapper = doc!.querySelector(".circle-wrapper");
+    const center = doc!.querySelector('[data-testid="circle-center"]');
+    expect(center).toBeTruthy();
+    expect(wrapper!.contains(center)).toBe(true);
+    expect(center!.querySelector('[data-field="name"]')).toBeTruthy();
+    expect(center!.querySelector('[data-field="relative"]')).toBeTruthy();
+    // Only one key-info section exists — it's no longer duplicated as a
+    // separate side-by-side panel outside the circle column.
+    expect(doc!.querySelectorAll('[data-testid="key-info"]').length).toBe(1);
+  });
+
+  it("gives the circle both an outer and an inner border ring", () => {
+    expect(doc!.querySelector(".circle-wrapper")).toBeTruthy();
+    expect(doc!.querySelector(".circle-inner-border")).toBeTruthy();
+  });
+
+  it("renders a key-signature accidental badge for every major key", () => {
+    const badges = Array.from(doc!.querySelectorAll(".key-signature-badge"));
+    expect(badges.length).toBe(12);
+  });
+
+  it("provides an empty chord-list target for the client script to populate on click", () => {
+    const chordList = doc!.querySelector('[data-testid="chord-list"]');
+    expect(chordList).toBeTruthy();
+    expect(chordList!.children.length).toBe(0);
   });
 
   it("renders 3 octaves of piano keys matching PIANO_KEYS, each with a pitch class and octave", () => {
@@ -331,6 +395,14 @@ describe("references section on every built page", () => {
       expect(links).toContain(
         "https://warrenmars.com/visual_art/theory/colour_wheel/music_colours/music_colours.htm",
       );
+    });
+
+    it(`${name} cites musicca.com and chromatone.center as circle-of-fifths references`, () => {
+      const links = Array.from(doc.querySelectorAll("footer a")).map((a) =>
+        a.getAttribute("href"),
+      );
+      expect(links).toContain("https://www.musicca.com/circle-of-fifths");
+      expect(links).toContain("https://fifths.chromatone.center/");
     });
   }
 });

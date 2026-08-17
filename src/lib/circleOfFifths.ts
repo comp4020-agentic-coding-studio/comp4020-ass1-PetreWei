@@ -55,6 +55,14 @@ export interface PianoKeyInfo {
   readonly octave: number;
 }
 
+export type ChordQuality = "major" | "minor" | "diminished";
+
+export interface DiatonicChord {
+  readonly numeral: string;
+  readonly root: string;
+  readonly quality: ChordQuality;
+}
+
 export const MAJOR_SCALE_INTERVALS: readonly number[] = [0, 2, 4, 5, 7, 9, 11];
 
 // Standard major-key data: 12 keys in circle-of-fifths order, clockwise from
@@ -213,6 +221,48 @@ export function formatKeySignature(key: KeyInfo): string {
   if (key.sharps > 0) return key.sharps === 1 ? "1 sharp" : `${key.sharps} sharps`;
   if (key.flats > 0) return key.flats === 1 ? "1 flat" : `${key.flats} flats`;
   return "no sharps or flats";
+}
+
+// Repeats the key's own accidental glyph (♯ or ♭) once per sharp/flat, for a
+// compact badge next to each key on the wheel — count only, not the specific
+// note letters, which already appear in formatKeySignature's full sentence.
+export function getAccidentalBadgeText(key: KeyInfo): string {
+  if (key.sharps > 0) return "♯".repeat(key.sharps);
+  if (key.flats > 0) return "♭".repeat(key.flats);
+  return "♮";
+}
+
+const MAJOR_DEGREE_NUMERALS: readonly string[] = ["I", "ii", "iii", "IV", "V", "vi", "vii°"];
+const MAJOR_DEGREE_QUALITIES: readonly ChordQuality[] = [
+  "major",
+  "minor",
+  "minor",
+  "major",
+  "major",
+  "minor",
+  "diminished",
+];
+const MINOR_DEGREE_NUMERALS: readonly string[] = ["i", "ii°", "III", "iv", "v", "VI", "VII"];
+const MINOR_DEGREE_QUALITIES: readonly ChordQuality[] = [
+  "minor",
+  "diminished",
+  "major",
+  "minor",
+  "minor",
+  "major",
+  "major",
+];
+
+// The 7 diatonic triads of a key, one per scale degree, labeled with the
+// standard roman-numeral convention (uppercase = major, lowercase = minor,
+// lowercase+° = diminished). Reuses the same scale spelling already used for
+// the "7 notes of this key" display, so the chord roots and the scale notes
+// can never disagree.
+export function getDiatonicChords(key: KeyInfo, quality: KeyQuality): DiatonicChord[] {
+  const spelling = quality === "major" ? key.scaleSpelling : getRelativeMinorScaleSpelling(key);
+  const numerals = quality === "major" ? MAJOR_DEGREE_NUMERALS : MINOR_DEGREE_NUMERALS;
+  const qualities = quality === "major" ? MAJOR_DEGREE_QUALITIES : MINOR_DEGREE_QUALITIES;
+  return spelling.map((root, i) => ({ numeral: numerals[i], root, quality: qualities[i] }));
 }
 
 // Mr Mars' colour wheel (see references) assigns each major key a named hue

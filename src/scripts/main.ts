@@ -1,6 +1,7 @@
 import {
   KEYS,
   formatKeySignature,
+  getDiatonicChords,
   getNeighborIndices,
   getRelativeMinorScaleSpelling,
   getRelativeMinorTonicPitchClass,
@@ -31,6 +32,7 @@ const pianoKeys = Array.from(
 
 const fields = {
   name: document.querySelector<HTMLElement>('[data-field="name"]'),
+  relative: document.querySelector<HTMLElement>('[data-field="relative"]'),
   scale: document.querySelector<HTMLElement>('[data-field="scale"]'),
   signature: document.querySelector<HTMLElement>('[data-field="signature"]'),
   colorName: document.querySelector<HTMLElement>('[data-field="color-name"]'),
@@ -41,6 +43,14 @@ const fields = {
     '[data-field="subdominant-diff"]',
   ),
 };
+
+const chordList = document.querySelector<HTMLElement>(
+  '[data-testid="chord-list"]',
+);
+
+const keyInfoSection = document.querySelector<HTMLElement>(
+  '[data-testid="key-info"]',
+);
 
 const placeholder = document.querySelector<HTMLElement>(
   '[data-testid="key-info-placeholder"]',
@@ -143,8 +153,13 @@ function updateSelection(index: number, quality: KeyQuality): void {
     : key.tonicPitchClass;
 
   if (placeholder) placeholder.hidden = true;
+  if (keyInfoSection) keyInfoSection.hidden = false;
   if (fields.name)
     fields.name.textContent = `${displayName} ${isMinor ? "minor" : "major"}`;
+  if (fields.relative)
+    fields.relative.textContent = isMinor
+      ? `Relative major: ${key.name}`
+      : `Relative minor: ${key.relativeMinorName}`;
   if (fields.scale)
     fields.scale.textContent = `The 7 notes of this key: ${scaleSpelling.join(" ")}`;
   if (fields.signature)
@@ -158,6 +173,18 @@ function updateSelection(index: number, quality: KeyQuality): void {
   if (fields.subdominantDiff)
     fields.subdominantDiff.textContent =
       `One step counter-clockwise, ${isMinor ? KEYS[subdominant].relativeMinorName : KEYS[subdominant].name} ${isMinor ? "minor" : "major"} (the "subdominant"): swap ${subdominantDiff.noteOnlyInA} for ${subdominantDiff.noteOnlyInB}`;
+
+  if (chordList) {
+    const chords = getDiatonicChords(key, quality);
+    chordList.replaceChildren(
+      ...chords.map((chord) => {
+        const item = document.createElement("li");
+        item.className = "chord-chip";
+        item.textContent = `${chord.numeral} ${chord.root}`;
+        return item;
+      }),
+    );
+  }
 
   const triadNotes = getTriadNotes(tonicPitchClass, quality);
   const notes = [triadNotes.root, triadNotes.third, triadNotes.fifth];

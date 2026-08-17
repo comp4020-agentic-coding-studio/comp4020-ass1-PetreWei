@@ -1,9 +1,10 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { KEYS, PIANO_KEYS, getKeyColor } from "../lib/circleOfFifths.ts";
+import { KEYS, PIANO_KEYS, getAccidentalBadgeText, getKeyColor } from "../lib/circleOfFifths.ts";
 
 const MAJOR_RADIUS_PERCENT = 38;
 const MINOR_RADIUS_PERCENT = 21;
+const BADGE_RADIUS_PERCENT = 46;
 
 function withPosition<T extends { index: number }>(key: T, radiusPercent: number) {
   const angleRad = ((key.index * 360) / KEYS.length) * (Math.PI / 180);
@@ -22,6 +23,11 @@ const positionedMajorKeys = KEYS.map((key) => ({
 const positionedMinorKeys = KEYS.map((key) => ({
   ...withPosition(key, MINOR_RADIUS_PERCENT),
   color: getKeyColor(key.index, "minor"),
+}));
+
+const positionedBadges = KEYS.map((key) => ({
+  ...withPosition(key, BADGE_RADIUS_PERCENT),
+  text: getAccidentalBadgeText(key),
 }));
 
 const base = import.meta.env.BASE_URL.endsWith("/")
@@ -95,7 +101,32 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
               </button>
             ))
           }
+          {
+            positionedBadges.map((badge) => (
+              <span
+                class="key-signature-badge"
+                aria-hidden="true"
+                style={`--btn-left: ${badge.left}%; --btn-top: ${badge.top}%;`}
+              >
+                {badge.text}
+              </span>
+            ))
+          }
+          <div class="circle-inner-border" aria-hidden="true" />
+          <div class="circle-center" data-testid="circle-center" aria-live="polite">
+            <p data-testid="key-info-placeholder">Pick a key</p>
+            <p class="circle-center-name" data-field="name"></p>
+            <p class="circle-center-relative" data-field="relative"></p>
+          </div>
         </div>
+        <section class="key-info" data-testid="key-info" aria-live="polite" hidden>
+          <p class="key-info__scale" data-field="scale"></p>
+          <p class="key-info__signature" data-field="signature"></p>
+          <p class="key-info__color" data-field="color-name"></p>
+          <p class="key-info__dominant" data-field="dominant-diff"></p>
+          <p class="key-info__subdominant" data-field="subdominant-diff"></p>
+          <ul class="chord-list" data-testid="chord-list" aria-label="Chords in this key"></ul>
+        </section>
         <div class="piano-keyboard-scroll">
           <div class="piano-keyboard" data-testid="piano-keyboard" aria-hidden="true">
             {
@@ -128,18 +159,6 @@ const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
           </li>
         </ul>
       </div>
-      <section class="key-info" data-testid="key-info" aria-live="polite">
-        <p data-testid="key-info-placeholder">
-          Pick any key above to hear it played and see exactly what changes
-          as you move to its neighbors.
-        </p>
-        <p class="key-info__name" data-field="name"></p>
-        <p class="key-info__scale" data-field="scale"></p>
-        <p class="key-info__signature" data-field="signature"></p>
-        <p class="key-info__color" data-field="color-name"></p>
-        <p class="key-info__dominant" data-field="dominant-diff"></p>
-        <p class="key-info__subdominant" data-field="subdominant-diff"></p>
-      </section>
     </section>
   </main>
   <script src="../scripts/main.ts"></script>
