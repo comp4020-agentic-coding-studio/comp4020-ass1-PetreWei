@@ -5,16 +5,24 @@ import {
   getRelativeMinorScaleSpelling,
   getRelativeMinorTonicPitchClass,
   getScaleDifference,
-  getTriadFrequencies,
-  getTriadPitchClasses,
+  getTriadNotes,
+  pitchClassToFrequency,
 } from "../lib/circleOfFifths.ts";
-import type { KeyQuality } from "../lib/circleOfFifths.ts";
+import type { KeyQuality, TriadNote } from "../lib/circleOfFifths.ts";
+
+type PlaybackMode = "chord" | "arpeggio";
 
 const ARPEGGIO_STEP_SECONDS = 0.18;
 const NOTE_DURATION_SECONDS = 1.1;
 
+let playbackMode: PlaybackMode = "arpeggio";
+
 const buttons = Array.from(
   document.querySelectorAll<HTMLButtonElement>("[data-key]"),
+);
+
+const modeButtons = Array.from(
+  document.querySelectorAll<HTMLButtonElement>("[data-playback-mode]"),
 );
 
 const pianoKeys = Array.from(
@@ -45,13 +53,14 @@ function getAudioContext(): AudioContext {
   return audioContext;
 }
 
-function playTriad(tonicPitchClass: number, quality: KeyQuality): void {
+function playTriad(notes: TriadNote[], mode: PlaybackMode): void {
   const context = getAudioContext();
-  const { root, third, fifth } = getTriadFrequencies(tonicPitchClass, quality);
+  const stepSeconds = mode === "chord" ? 0 : ARPEGGIO_STEP_SECONDS;
   const now = context.currentTime;
 
-  [root, third, fifth].forEach((frequency, i) => {
-    const startTime = now + i * ARPEGGIO_STEP_SECONDS;
+  notes.forEach((note, i) => {
+    const frequency = pitchClassToFrequency(note.pitchClass, note.octave);
+    const startTime = now + i * stepSeconds;
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     oscillator.type = "sine";
@@ -73,7 +82,7 @@ function playTriad(tonicPitchClass: number, quality: KeyQuality): void {
 
 let pendingHighlightTimeouts: ReturnType<typeof setTimeout>[] = [];
 
-function highlightPianoKeys(pitchClasses: number[]): void {
+function highlightPianoKeys(notes: TriadNote[], mode: PlaybackMode): void {
   for (const timeoutId of pendingHighlightTimeouts) {
     clearTimeout(timeoutId);
   }
@@ -83,15 +92,19 @@ function highlightPianoKeys(pitchClasses: number[]): void {
     pianoKey.classList.remove("piano-key-active");
   }
 
-  pitchClasses.forEach((pitchClass, i) => {
+  const stepSeconds = mode === "chord" ? 0 : ARPEGGIO_STEP_SECONDS;
+
+  notes.forEach((note, i) => {
     const timeoutId = setTimeout(
       () => {
         const pianoKey = pianoKeys.find(
-          (key) => Number(key.dataset.pitchClass) === pitchClass,
+          (key) =>
+            Number(key.dataset.pitchClass) === note.pitchClass &&
+            Number(key.dataset.octave) === note.octave,
         );
         pianoKey?.classList.add("piano-key-active");
       },
-      i * ARPEGGIO_STEP_SECONDS * 1000,
+      i * stepSeconds * 1000,
     );
     pendingHighlightTimeouts.push(timeoutId);
   });
@@ -146,14 +159,11 @@ function updateSelection(index: number, quality: KeyQuality): void {
     fields.subdominantDiff.textContent =
       `One step counter-clockwise, ${isMinor ? KEYS[subdominant].relativeMinorName : KEYS[subdominant].name} ${isMinor ? "minor" : "major"} (the "subdominant"): swap ${subdominantDiff.noteOnlyInA} for ${subdominantDiff.noteOnlyInB}`;
 
-  const triadPitchClasses = getTriadPitchClasses(tonicPitchClass, quality);
-  highlightPianoKeys([
-    triadPitchClasses.root,
-    triadPitchClasses.third,
-    triadPitchClasses.fifth,
-  ]);
+  const triadNotes = getTriadNotes(tonicPitchClass, quality);
+  const notes = [triadNotes.root, triadNotes.third, triadNotes.fifth];
+  highlightPianoKeys(notes, playbackMode);
 
-  playTriad(tonicPitchClass, quality);
+  playTriad(notes, playbackMode);
 }
 
 for (const button of buttons) {
@@ -161,5 +171,14 @@ for (const button of buttons) {
     const index = Number(button.dataset.index);
     const quality = button.dataset.mode as KeyQuality;
     updateSelection(index, quality);
+  });
+}
+
+for (const modeButton of modeButtons) {
+  modeButton.addEventListener("click", () => {
+    playbackMode = modeButton.dataset.playbackMode as PlaybackMode;
+    for (const button of modeButtons) {
+      button.setAttribute("aria-pressed", String(button === modeButton));
+    }
   });
 }

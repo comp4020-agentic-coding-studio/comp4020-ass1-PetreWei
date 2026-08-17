@@ -36,11 +36,23 @@ export interface TriadPitchClasses {
   fifth: number;
 }
 
+export interface TriadNote {
+  readonly pitchClass: number;
+  readonly octave: number;
+}
+
+export interface TriadNotes {
+  root: TriadNote;
+  third: TriadNote;
+  fifth: TriadNote;
+}
+
 export interface PianoKeyInfo {
   readonly pitchClass: number;
   readonly label: string;
   readonly isBlack: boolean;
   readonly whiteIndex: number;
+  readonly octave: number;
 }
 
 export const MAJOR_SCALE_INTERVALS: readonly number[] = [0, 2, 4, 5, 7, 9, 11];
@@ -131,38 +143,71 @@ export function getTriadPitchClasses(
   };
 }
 
-export function getTriadFrequencies(
+// Single source of truth for exactly which note (pitch class + octave) each
+// triad tone is. The root always sits in octave 4; the third/fifth bump up
+// to octave 5 whenever stacking their interval on top of the tonic would
+// otherwise wrap past B, so the triad always ascends root < third < fifth.
+// Both audio playback and piano-key highlighting consume this same data, so
+// they can never disagree about what note is actually sounding.
+export function getTriadNotes(
   tonicPitchClass: number,
   quality: KeyQuality = "major",
-): TriadFrequencies {
+): TriadNotes {
   const { root, third, fifth } = getTriadPitchClasses(tonicPitchClass, quality);
   const thirdInterval = quality === "major" ? 4 : 3;
   const thirdOctave = tonicPitchClass + thirdInterval >= 12 ? 5 : 4;
   const fifthOctave = tonicPitchClass + 7 >= 12 ? 5 : 4;
   return {
-    root: pitchClassToFrequency(root, 4),
-    third: pitchClassToFrequency(third, thirdOctave),
-    fifth: pitchClassToFrequency(fifth, fifthOctave),
+    root: { pitchClass: root, octave: 4 },
+    third: { pitchClass: third, octave: thirdOctave },
+    fifth: { pitchClass: fifth, octave: fifthOctave },
   };
 }
 
-// One chromatic octave for the on-screen keyboard. whiteIndex doubles as the
-// horizontal layout coordinate: 0-6 for white keys, x.5 for the black key
-// sitting on the boundary right after white key x.
-export const PIANO_KEYS: readonly PianoKeyInfo[] = [
+export function getTriadFrequencies(
+  tonicPitchClass: number,
+  quality: KeyQuality = "major",
+): TriadFrequencies {
+  const notes = getTriadNotes(tonicPitchClass, quality);
+  return {
+    root: pitchClassToFrequency(notes.root.pitchClass, notes.root.octave),
+    third: pitchClassToFrequency(notes.third.pitchClass, notes.third.octave),
+    fifth: pitchClassToFrequency(notes.fifth.pitchClass, notes.fifth.octave),
+  };
+}
+
+// One chromatic octave's worth of key shapes. whiteIndex doubles as the
+// horizontal layout coordinate: 0-6 for white keys. A black key's whiteIndex
+// is the *next* white key's own integer index (not a fractional midpoint of
+// the previous one) so it lands exactly on the boundary between two white
+// keys, where a real black key sits — not centered inside one.
+const PIANO_OCTAVE_TEMPLATE: readonly Omit<PianoKeyInfo, "octave">[] = [
   { pitchClass: 0, label: "C", isBlack: false, whiteIndex: 0 },
-  { pitchClass: 1, label: "C♯", isBlack: true, whiteIndex: 0.5 },
+  { pitchClass: 1, label: "C♯", isBlack: true, whiteIndex: 1 },
   { pitchClass: 2, label: "D", isBlack: false, whiteIndex: 1 },
-  { pitchClass: 3, label: "D♯", isBlack: true, whiteIndex: 1.5 },
+  { pitchClass: 3, label: "D♯", isBlack: true, whiteIndex: 2 },
   { pitchClass: 4, label: "E", isBlack: false, whiteIndex: 2 },
   { pitchClass: 5, label: "F", isBlack: false, whiteIndex: 3 },
-  { pitchClass: 6, label: "F♯", isBlack: true, whiteIndex: 3.5 },
+  { pitchClass: 6, label: "F♯", isBlack: true, whiteIndex: 4 },
   { pitchClass: 7, label: "G", isBlack: false, whiteIndex: 4 },
-  { pitchClass: 8, label: "G♯", isBlack: true, whiteIndex: 4.5 },
+  { pitchClass: 8, label: "G♯", isBlack: true, whiteIndex: 5 },
   { pitchClass: 9, label: "A", isBlack: false, whiteIndex: 5 },
-  { pitchClass: 10, label: "A♯", isBlack: true, whiteIndex: 5.5 },
+  { pitchClass: 10, label: "A♯", isBlack: true, whiteIndex: 6 },
   { pitchClass: 11, label: "B", isBlack: false, whiteIndex: 6 },
 ];
+
+// Octave 4 holds the root of every triad; 5 covers the third/fifth's
+// occasional wrap; 3 is extra lower register for visual context.
+export const PIANO_OCTAVES: readonly number[] = [3, 4, 5];
+const WHITE_KEYS_PER_OCTAVE = PIANO_OCTAVE_TEMPLATE.filter((k) => !k.isBlack).length;
+
+export const PIANO_KEYS: readonly PianoKeyInfo[] = PIANO_OCTAVES.flatMap((octave, octaveOffset) =>
+  PIANO_OCTAVE_TEMPLATE.map((key) => ({
+    ...key,
+    octave,
+    whiteIndex: key.whiteIndex + octaveOffset * WHITE_KEYS_PER_OCTAVE,
+  })),
+);
 
 export function formatKeySignature(key: KeyInfo): string {
   if (key.sharps > 0) return key.sharps === 1 ? "1 sharp" : `${key.sharps} sharps`;

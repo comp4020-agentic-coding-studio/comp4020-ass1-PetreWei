@@ -14,7 +14,9 @@ import {
   getScaleDifference,
   getScalePitchClasses,
   getTriadFrequencies,
+  getTriadNotes,
   getTriadPitchClasses,
+  pitchClassToFrequency,
 } from "../src/lib/circleOfFifths.ts";
 
 describe("circle of fifths: pure logic", () => {
@@ -84,13 +86,61 @@ describe("circle of fifths: pure logic", () => {
     expect(getTriadPitchClasses(11)).toEqual({ root: 11, third: 3, fifth: 6 });
   });
 
-  it("lays out exactly one chromatic octave for the on-screen keyboard", () => {
+  it("lays out 3 chromatic octaves for the on-screen keyboard", () => {
+    expect(PIANO_KEYS.length).toBe(36);
+    const oneOctave = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
     expect(PIANO_KEYS.map((k) => k.pitchClass)).toEqual([
-      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+      ...oneOctave,
+      ...oneOctave,
+      ...oneOctave,
     ]);
-    expect(PIANO_KEYS.filter((k) => k.isBlack).map((k) => k.pitchClass)).toEqual([
-      1, 3, 6, 8, 10,
+    expect(PIANO_KEYS.map((k) => k.octave)).toEqual([
+      ...Array(12).fill(3),
+      ...Array(12).fill(4),
+      ...Array(12).fill(5),
     ]);
+    expect(PIANO_KEYS.filter((k) => k.isBlack).length).toBe(15);
+  });
+
+  it("centers every black key on the boundary with the white key right after it, not inside one", () => {
+    PIANO_KEYS.forEach((key, i) => {
+      if (!key.isBlack) return;
+      const nextWhiteKey = PIANO_KEYS[i + 1];
+      expect(nextWhiteKey.isBlack).toBe(false);
+      expect(nextWhiteKey.whiteIndex).toBe(key.whiteIndex);
+    });
+  });
+
+  it("computes each triad note's exact pitch class and octave (root always octave 4)", () => {
+    expect(getTriadNotes(0)).toEqual({
+      root: { pitchClass: 0, octave: 4 },
+      third: { pitchClass: 4, octave: 4 },
+      fifth: { pitchClass: 7, octave: 4 },
+    });
+
+    // F major: fifth (C) wraps up to octave 5, third (A) doesn't.
+    const fMajor = getTriadNotes(5);
+    expect(fMajor.root).toEqual({ pitchClass: 5, octave: 4 });
+    expect(fMajor.third).toEqual({ pitchClass: 9, octave: 4 });
+    expect(fMajor.fifth).toEqual({ pitchClass: 0, octave: 5 });
+
+    // A♭ major: both third (C) and fifth (E♭) wrap up to octave 5.
+    const abMajor = getTriadNotes(8);
+    expect(abMajor.third).toEqual({ pitchClass: 0, octave: 5 });
+    expect(abMajor.fifth).toEqual({ pitchClass: 3, octave: 5 });
+
+    // D♭ major: neither third (F) nor fifth (A♭) wraps.
+    const dbMajor = getTriadNotes(1);
+    expect(dbMajor.third).toEqual({ pitchClass: 5, octave: 4 });
+    expect(dbMajor.fifth).toEqual({ pitchClass: 8, octave: 4 });
+
+    // A minor: still ascends root < third < fifth in frequency.
+    const aMinor = getTriadNotes(9, "minor");
+    const freqs = [aMinor.root, aMinor.third, aMinor.fifth].map((n) =>
+      pitchClassToFrequency(n.pitchClass, n.octave),
+    );
+    expect(freqs[0]).toBeLessThan(freqs[1]);
+    expect(freqs[1]).toBeLessThan(freqs[2]);
   });
 
   it("derives each relative minor's tonic a minor third below its major", () => {
@@ -194,15 +244,30 @@ describe("circle of fifths: built page structure (static parse, no script execut
     expect(doc!.querySelector('[data-testid="key-info"]')).toBeTruthy();
   });
 
-  it("renders exactly one chromatic octave of piano keys matching PIANO_KEYS", () => {
+  it("renders 3 octaves of piano keys matching PIANO_KEYS, each with a pitch class and octave", () => {
     const pianoKeys = Array.from(doc!.querySelectorAll("[data-pitch-class]"));
-    expect(pianoKeys.length).toBe(12);
+    expect(pianoKeys.length).toBe(36);
     expect(pianoKeys.map((k) => k.getAttribute("data-pitch-class"))).toEqual(
       PIANO_KEYS.map((k) => String(k.pitchClass)),
     );
+    expect(pianoKeys.map((k) => k.getAttribute("data-octave"))).toEqual(
+      PIANO_KEYS.map((k) => String(k.octave)),
+    );
     expect(
       pianoKeys.filter((k) => k.classList.contains("piano-key-black")).length,
-    ).toBe(5);
+    ).toBe(15);
+  });
+
+  it("renders a chord/arpeggio playback toggle, defaulting to arpeggio", () => {
+    const modeButtons = Array.from(doc!.querySelectorAll("[data-playback-mode]"));
+    expect(modeButtons.map((b) => b.getAttribute("data-playback-mode"))).toEqual([
+      "arpeggio",
+      "chord",
+    ]);
+    expect(modeButtons.map((b) => b.getAttribute("aria-pressed"))).toEqual([
+      "true",
+      "false",
+    ]);
   });
 
   it("links to the theory page with a base-anchored (not page-relative) href", () => {

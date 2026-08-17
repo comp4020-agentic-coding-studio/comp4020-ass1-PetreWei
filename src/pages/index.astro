@@ -28,6 +28,8 @@ const base = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
 const theoryHref = `${base}theory.html`;
+
+const whiteKeyCount = PIANO_KEYS.filter((key) => !key.isBlack).length;
 ---
 
 <Layout title="Chromesthesia Circle of Fifths">
@@ -44,6 +46,14 @@ const theoryHref = `${base}theory.html`;
     </p>
     <section class="circle-layout">
       <div class="circle-column">
+        <div class="playback-mode" role="group" aria-label="Playback style">
+          <button type="button" class="mode-button" data-playback-mode="arpeggio" aria-pressed="true">
+            Arpeggio
+          </button>
+          <button type="button" class="mode-button" data-playback-mode="chord" aria-pressed="false">
+            Chord
+          </button>
+        </div>
         <div class="circle-wrapper" role="group" aria-label="Circle of fifths keys">
           {
             positionedMajorKeys.map((key) => (
@@ -86,16 +96,19 @@ const theoryHref = `${base}theory.html`;
             ))
           }
         </div>
-        <div class="piano-keyboard" data-testid="piano-keyboard" aria-hidden="true">
-          {
-            PIANO_KEYS.map((key) => (
-              <div
-                class={`piano-key ${key.isBlack ? "piano-key-black" : "piano-key-white"}`}
-                data-pitch-class={key.pitchClass}
-                style={`--key-left: ${(key.whiteIndex / 7) * 100}%;`}
-              />
-            ))
-          }
+        <div class="piano-keyboard-scroll">
+          <div class="piano-keyboard" data-testid="piano-keyboard" aria-hidden="true">
+            {
+              PIANO_KEYS.map((key) => (
+                <div
+                  class={`piano-key ${key.isBlack ? "piano-key-black" : "piano-key-white"}`}
+                  data-pitch-class={key.pitchClass}
+                  data-octave={key.octave}
+                  style={`--key-left: ${(key.whiteIndex / whiteKeyCount) * 100}%;`}
+                />
+              ))
+            }
+          </div>
         </div>
         <ul class="legend">
           <li class="legend-item">
