@@ -90,19 +90,69 @@ running counts as not green, so ship with time for CI to finish.
   blocks any commit containing something shaped like an API key --- by the time
   CI sees a key it's already pushed, so the hook is the sensor that matters.
 
-Nothing here measures **accessibility** or **performance** --- wiring those
-sensors (`axe-core`, Lighthouse, or whatever you choose) is your work, and later
-in the course the spec will ask you to show how you tested both. When you do,
-read a green performance result honestly: it's a lab estimate from one run on a
-CI machine, not proof the site is fast for real users.
+Nothing here measures **performance** --- wiring that sensor (Lighthouse or
+whatever you choose) is your work, and later in the course the spec will ask
+you to show how you tested it. When you do, read a green result honestly:
+it's a lab estimate from one run on a CI machine, not proof the site is fast
+for real users.
 
-## The stack is swappable
+**Accessibility** *is* wired, in `spec/accessibility.test.ts`, but by hand
+rather than by an off-the-shelf tool like axe-core: every wedge's label
+contrast is computed from the WCAG formula (implemented and anchored against
+known values, not just called), asserted at ≥4.5:1 for all 24 keys, with a
+test that both light and near-black ink are actually in use --- a uniform ink
+is exactly the failure this project shipped once (see `PROCESS.md`). It also
+asserts every interactive control is a real, focusable `<button>`, that
+`:focus-visible` and `:hover` render different CSS rather than the
+byte-identical rules this repo also shipped once, and that the audio content
+(chords, the Happy Birthday melody) has a text form for a reader who can't
+hear it. This is not a substitute for a real screen-reader pass or an
+axe-core run --- neither has happened here --- it only covers what it was
+built to check.
 
-Out of the box this is plain HTML/CSS/TypeScript on Vite, and every `.html` file
-in the repo is a page: add pages, link them, and the build picks them up with no
-config. That's a default, not a rule (unless the week's spec says otherwise).
-You can swap in Astro or any other static generator, because nothing in CI names
-a tool --- the whole contract is:
+## What this prototype is
+
+An interactive explainer of the circle of fifths that you **see and hear at the
+same time**. Colour and sound are the two channels, and the whole point is that
+neither alone teaches the thing: click a wedge and you hear its triad while the
+wheel shows which three slices its chords live in, the roman numerals appear on
+exactly the wedges that are diatonic to it, and the piano lights the notes that
+are actually sounding. Every claim the page makes about music, you can hear.
+
+Consequences that constrain every change:
+
+- **Audio is content, not decoration.** Anything the page plays must also be
+  visible (highlighted keys, and a text readout naming the notes), or the
+  explanation is unavailable to a deaf reader.
+- **Colour is content, not theme.** The 24 wheel colours are Mr Mars' cited
+  scheme. They never change with the light/dark theme, and they are never the
+  only channel: every wedge is also labelled, and the selected key's colour is
+  named in words.
+- **Note names stay letters in every locale** (`C`, `F♯`, `Dm`), so
+  `src/lib/circleOfFifths.ts` never becomes locale-aware and its ~100 unit tests
+  stay valid. Solfège was considered and rejected: see `PROCESS.md`.
+
+## The stack
+
+Astro, 5 pages × 5 locales = 25 built pages, English at the unprefixed URLs and
+`es`/`fr`/`it`/`zh` under `/<locale>/`. `build.format: "file"` means route `/es`
+emits `dist/es.html` and `/es/circle` emits `dist/es/circle.html`.
+
+Where things live:
+
+- `src/lib/` --- DOM-free, unit-testable logic. `circleOfFifths.ts` is the
+  single source of truth for all music theory and colour; `i18n.ts` owns
+  locales, page keys and `pageHref()`. Neither imports Astro or touches the DOM.
+- `src/i18n/<locale>/` --- strings, split into `runtime.ts` (the ~35 the client
+  script needs) and the rest. **`main.ts` must only ever import `runtime.ts`**:
+  it is one bundled chunk shared by every home page, and Rollup does not
+  tree-shake properties out of an object literal, so importing the full tree
+  ships every locale's prose to the browser.
+- `src/components/*Page.astro` --- page bodies, authored once, taking a `locale`
+  prop. `src/pages/*.astro` are thin wrappers.
+
+The stack is still swappable --- nothing in CI names a tool --- and the whole
+contract is:
 
 - `pnpm build` emits the complete site into `dist/`
 - the `package.json` scripts (`check`, `check:evidence`, `build`) keep working
@@ -155,21 +205,43 @@ know whose repo it is. Spend the effort on the work.
 
 ## Testing interactive client scripts
 
-`spec/*.test.ts` runs against the **built** `dist/index.html` parsed with
-plain JSDOM (see `spec/starter.test.ts`'s original pattern) --- JSDOM does not
-reliably execute `<script type="module">`, so a test cannot simulate a click
-and assert on the DOM changes that `main.ts` makes in a real browser. Don't
-try to integration-test click-driven behaviour this way; it'll look like it
-should work and then silently not run the script at all.
+`spec/*.test.ts` runs against the **built** `dist/**/*.html` (25 pages: 5
+pages × 5 locales) parsed with plain JSDOM --- JSDOM does not reliably execute
+`<script type="module">`, so a test cannot simulate a click and assert on the
+DOM changes that `main.ts` makes in a real browser, and it has no layout
+engine at all, so it cannot measure contrast, focus rings, or whether
+something overflows at 390px. Don't try to integration-test those things this
+way; it'll look like it should work and then silently not run the script, or
+silently not measure the thing you actually care about.
 
 The convention that gets real coverage instead: keep all the actual logic
-(data, derivations, math) in a plain DOM-free module under `src/lib/`, unit-test
-that directly by importing it in the spec file, and separately assert
-(statically, against the built HTML) that the interactive elements and the
-targets the client script needs exist with the right attributes. `main.ts`
-itself stays thin glue with nothing worth unit-testing on its own --- verify
-its actual behaviour by hand in a real browser (dev server or a headless one)
-instead.
+(data, derivations, colour maths) in plain DOM-free modules under `src/lib/`,
+unit-test those directly by importing them in the spec file, and separately
+assert (statically, against the built HTML) that the interactive elements and
+the targets the client script needs exist with the right attributes. `main.ts`
+itself stays thin glue with nothing worth unit-testing on its own. For
+anything the DOM genuinely can't tell you --- does a real browser paint this
+contrast, does the keyboard focus ring actually differ from hover, does the
+header wrap at 320px --- two things happen: a spec assertion checks the
+*structure* that makes the property possible (a rule exists, a token is
+defined in both themes, every table sits in a scroll container) and says in a
+comment that it cannot verify the rendered result itself, and the rendered
+result gets checked by hand in a real browser at both marking viewports
+before the commit that claims it.
+
+Two patterns this project's spec suite leans on, worth reusing rather than
+reinventing:
+
+- **`spec/support/dist.ts`** memoises parsed documents (`docFor(locale, page)`)
+  and derives the expected page list from `LOCALES × PAGE_ORDER`, so 25 pages
+  get checked without 25 separate hand-written paths and without re-parsing
+  the same 60KB file three times.
+- **Translation completeness is a spec problem, not a type problem.** A
+  `Record<EnglishLiteral, string>` looks exhaustive but isn't --- once a
+  library value like a colour name is exposed as `string`, TypeScript widens
+  it and `astro check` cannot catch a missing translation. `spec/i18n.test.ts`
+  asserts the translated key sets against what the library actually emits, not
+  against a hand-copied list that can drift out of sync with it.
 
 ## This file is yours
 
