@@ -2,32 +2,14 @@
 
 **What was the breakthrough that moved the work forward?**
 
-The breakthrough was measuring before trusting a decision I'd already made,
-not just before writing new code. Every wedge label used one uniform white
-ink — chosen deliberately so a later dark theme would have one colour to
-swap, and never questioned since. Asked to add accessibility, I audited
-actual contrast first: E major's label came back at 1.57:1 against white, 9
-of 24 labels failing WCAG AA's 4.5:1. The uniform ink was the cause, not
-incidental to it, so I reversed that decision instead of tuning around it —
-each wedge now picks white or near-black by its own measured contrast (worst
-case 4.61:1), with 24 assertions in CI so it can't regress silently. The same
-audit caught keyboard focus being invisible on the wheel: hover and
-focus-visible were byte-identical CSS, a failure eyeballing had already
-missed once.
+Asking the agent to measure instead of to change.
 
-It also sharpened what "audio is content" means here. The wheel already
-highlighted a triad's notes the instant it played them, so sight and sound
-were redundant by design for anyone who could see it. Missing was a path for
-someone who couldn't hear at all: a text readout naming whatever's sounding,
-`aria-hidden` so it stays silent to a screen reader that already has the
-audio. Colour, highlight and text now all carry the same claim.
+Before, my prompts named an outcome — "make the labels readable", "add accessibility features" — and the agent returned a plausible diff that I approved by looking at it. Looking had already shipped two failures I could not see: every wedge label used one uniform white ink, a choice I made on purpose so a future dark theme would swap one value, and `:focus-visible` was byte-identical to `:hover`, leaving the wheel with no keyboard focus. The page argues by sight and sound at once, so an unreadable label breaks half the argument.
+
+The change was to withhold the change: audit all 24 wedges' contrast first and report the numbers. What came back was not a diff but evidence — E major's label at 1.57:1, and 9 of 24 under WCAG AA's 4.5:1. That reframed the bug: the uniform ink was not near the problem, it was the problem, so the fix was to reverse a deliberate decision rather than tune around it.
+
+It worked because a number can be wrong and a plausible edit cannot, and it stuck because it landed in the harness, not the conversation: a contrast function in the theory module and 24 assertions in CI, anchored on the WCAG formula so they cannot pass on a broken implementation. The rule holds for all 24 wedges, not the one I noticed.
 
 **What did this work change about who I want to be as a developer?**
 
-I want to default to measuring before trusting a past decision, not only
-before writing new code. "Uniform for future theming" sounded reasonable
-when I wrote it and was wrong the moment I checked it against real numbers —
-the bug was in a choice made on purpose, not code written carelessly. Fixing
-the harness, a contrast function and a spec test, rather than the one failing
-wedge, is the habit I want to keep: it turned a fixable bug into a rule that
-holds for all 24, not just the one I happened to notice.
+I want to point an agent at evidence, not at outcomes. Generating a plausible change is the cheap part now; deciding what would prove it wrong is the part I cannot hand over — including when the thing to be proved wrong is a decision of my own.

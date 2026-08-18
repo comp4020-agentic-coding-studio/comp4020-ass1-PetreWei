@@ -165,6 +165,39 @@ generators (Astro included) need `base` set explicitly, and getting it wrong
 looks fine locally while every asset 404s on the live URL. And commit the
 updated `pnpm-lock.yaml`: CI installs with `--frozen-lockfile`.
 
+## Rules that came from a specific failure
+
+Each of these is here because something went wrong once. They are guides, not
+sensors --- the checks can't enforce most of them --- so they only work if
+they're read.
+
+- **Never edit `.github/workflows/`.** The course CI is the sensor this work has
+  to satisfy, not part of the response. When a check went red because
+  Wikipedia rate-limited a shared runner IP, the one-line fix was to make the
+  link check skip the host; that converts a real signal into a green light.
+  Drafted and thrown away. When a check fails for a reason outside this repo,
+  remove the dependency instead --- which is why nothing on this site is an
+  external link any more.
+- **Verify against the built site, not the dev server.** A stale `astro dev`
+  still holding port 4321 meant `serve dist` silently bound a random port and a
+  whole session's "verification" was reading the dev server, including its
+  injected toolbar, mistaken for a layout bug. Use
+  `pnpm build && pnpm preview --port <port>` and read the port the tool
+  actually printed, not the one you asked for.
+- **No plausible-looking fallback in a display path.** `findPianoKey` used to
+  fall back to the nearest octave of the same pitch class, so a key that wasn't
+  sounding lit up exactly like one that was. A wrong answer that looks right is
+  worse than none: fail visibly, or show nothing.
+- **When a change is asked for as an outcome, measure first.** "Make the labels
+  readable" or "add accessibility" invites a plausible diff that gets approved
+  by eye. Produce the numbers before the diff --- that's what found 9 of 24
+  wedge labels under WCAG AA, and one of them at 1.57:1, after every one of
+  them had looked fine to me.
+- **Focus rings on wedges must be `filter: drop-shadow()`, never `outline`.**
+  The wedges are drawn with `clip-path`, which clips descendants, and an
+  `outline` follows the element's box rather than its painted shape --- so an
+  outline draws a rectangle across the whole wheel.
+
 ## Your process is part of the mark
 
 The deployed page is only half of it. How you got there is marked too: your
